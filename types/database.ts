@@ -4,6 +4,7 @@ export type CategoriaServicio =
   | "laminados"
   | "encolochados"
   | "sublimados"
+  | "comida"
   | "otros";
 
 export type TipoPrecioServicio = "fijo" | "por_unidad" | "variable";
@@ -108,6 +109,50 @@ export const DEFAULT_SERVICIOS: Servicio[] = [
     descripcion: "Personalización de tazas, playeras, termos y gorras.",
     tipo_precio: "variable",
     precio_actual: 0.0,
+    version_precio: 1,
+    activo: true,
+  },
+  {
+    id: "mock-pal-ch",
+    codigo: "palomitas_chica",
+    categoria: "comida",
+    nombre: "Palomitas Chica",
+    descripcion: "Porción individual chica de palomitas preparadas.",
+    tipo_precio: "fijo",
+    precio_actual: 15.0,
+    version_precio: 1,
+    activo: true,
+  },
+  {
+    id: "mock-pal-med",
+    codigo: "palomitas_mediana",
+    categoria: "comida",
+    nombre: "Palomitas Mediana",
+    descripcion: "Porción mediana de palomitas preparadas.",
+    tipo_precio: "fijo",
+    precio_actual: 25.0,
+    version_precio: 1,
+    activo: true,
+  },
+  {
+    id: "mock-pal-gde",
+    codigo: "palomitas_grande",
+    categoria: "comida",
+    nombre: "Palomitas Grande",
+    descripcion: "Porción grande / familiar de palomitas preparadas.",
+    tipo_precio: "fijo",
+    precio_actual: 35.0,
+    version_precio: 1,
+    activo: true,
+  },
+  {
+    id: "mock-pal-jumbo",
+    codigo: "palomitas_jumbo",
+    categoria: "comida",
+    nombre: "Palomitas Jumbo",
+    descripcion: "Cubeta jumbo para compartir.",
+    tipo_precio: "fijo",
+    precio_actual: 50.0,
     version_precio: 1,
     activo: true,
   },

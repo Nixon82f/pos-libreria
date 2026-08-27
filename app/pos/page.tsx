@@ -20,6 +20,7 @@ import { CheckoutModal } from "@/components/pos/CheckoutModal";
 import { ReceiptModal } from "@/components/pos/ReceiptModal";
 import { QuickInventoryModal } from "@/components/pos/QuickInventoryModal";
 import { RefreshCwIcon, LayersIcon, PackagePlusIcon } from "@/components/pos/Icons";
+import { resolveProductCategory } from "@/lib/categoryStorage";
 
 function toProducto(row: {
   id: string;
@@ -33,7 +34,7 @@ function toProducto(row: {
     nombre: row.nombre,
     precio: Number(row.precio),
     stock: Number(row.stock),
-    categoria: (row.categoria as CategoriaProducto) || "libreria",
+    categoria: resolveProductCategory(row.categoria, row.id, row.nombre),
   };
 }
 

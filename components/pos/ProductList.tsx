@@ -70,6 +70,76 @@ export function ProductList({
     return productos.filter((p) => p.categoria === "comida");
   }, [productos]);
 
+  // Palomitas Services from database or defaults
+  const srvPalomitasChica = useMemo(
+    () =>
+      servicios.find((s) => s.codigo === "palomitas_chica") || {
+        id: "mock-pal-ch",
+        codigo: "palomitas_chica",
+        categoria: "comida" as const,
+        nombre: "Palomitas Chica",
+        tipo_precio: "fijo" as const,
+        precio_actual: 15.0,
+        version_precio: 1,
+        activo: true,
+      },
+    [servicios]
+  );
+  const srvPalomitasMediana = useMemo(
+    () =>
+      servicios.find((s) => s.codigo === "palomitas_mediana") || {
+        id: "mock-pal-med",
+        codigo: "palomitas_mediana",
+        categoria: "comida" as const,
+        nombre: "Palomitas Mediana",
+        tipo_precio: "fijo" as const,
+        precio_actual: 25.0,
+        version_precio: 1,
+        activo: true,
+      },
+    [servicios]
+  );
+  const srvPalomitasGrande = useMemo(
+    () =>
+      servicios.find((s) => s.codigo === "palomitas_grande") || {
+        id: "mock-pal-gde",
+        codigo: "palomitas_grande",
+        categoria: "comida" as const,
+        nombre: "Palomitas Grande",
+        tipo_precio: "fijo" as const,
+        precio_actual: 35.0,
+        version_precio: 1,
+        activo: true,
+      },
+    [servicios]
+  );
+  const srvPalomitasJumbo = useMemo(
+    () =>
+      servicios.find((s) => s.codigo === "palomitas_jumbo") || {
+        id: "mock-pal-jumbo",
+        codigo: "palomitas_jumbo",
+        categoria: "comida" as const,
+        nombre: "Palomitas Jumbo",
+        tipo_precio: "fijo" as const,
+        precio_actual: 50.0,
+        version_precio: 1,
+        activo: true,
+      },
+    [servicios]
+  );
+
+  const handleAddPalomitasDirect = (srv: Servicio, tamano: string) => {
+    onAddServiceToCart({
+      tipo: "servicio",
+      servicio: srv,
+      nombre: srv.nombre,
+      descripcion_personalizada: `1 x Palomitas (${tamano})`,
+      cantidad: 1,
+      precio_unitario: srv.precio_actual,
+      opcion: tamano,
+    });
+  };
+
   // Filtered lists
   const filtradosLibreria = useMemo(() => {
     const query = busquedaLibreria.trim().toLowerCase();
@@ -160,18 +230,22 @@ export function ProductList({
             title="Atajo para agregar inventario o registrar nuevo producto (Alt+I / F2)"
           >
             <PackagePlusIcon className="h-3.5 w-3.5" />
-            <span className="hidden md:inline">+ Inventario</span>
+            <span className="hidden sm:inline">+ Inventario Rápido</span>
+            <span className="sm:hidden">+ Inv</span>
+            <span className="hidden md:inline-block rounded bg-stone-700 px-1 py-0.2 text-[10px] text-stone-300">
+              F2
+            </span>
           </button>
         )}
       </div>
 
-      {/* ================= Tab 1: Librería & Papelería ================= */}
+      {/* ================= Tab 1: Librería & Útiles ================= */}
       <div className={mainTab === "libreria" ? "flex flex-1 flex-col overflow-hidden" : "hidden"}>
         {/* Header & Search */}
         <div className="border-b border-stone-200 p-4 sm:p-5">
           <div className="flex flex-wrap items-center justify-between gap-3">
             <div className="flex items-center gap-2">
-              <h2 className="text-base font-semibold text-stone-900">Artículos de Librería</h2>
+              <h2 className="text-base font-semibold text-stone-900">Catálogo de Librería</h2>
               <span className="rounded-full bg-stone-100 px-2.5 py-0.5 text-xs font-medium text-stone-600">
                 {productosLibreria.length}
               </span>
@@ -235,7 +309,7 @@ export function ProductList({
               type="text"
               value={busquedaLibreria}
               onChange={(e) => setBusquedaLibreria(e.target.value)}
-              placeholder="Buscar útiles, cuadernos, papelería (ej. Cuaderno, Lapicero)..."
+              placeholder="Buscar por nombre de producto de librería..."
               className="w-full rounded-xl border border-stone-200 bg-stone-50 py-2 pl-10 pr-10 text-sm text-stone-900 outline-none transition placeholder:text-stone-400 focus:border-stone-500 focus:bg-white focus:ring-2 focus:ring-stone-200"
             />
             {busquedaLibreria && (
@@ -256,24 +330,25 @@ export function ProductList({
           {cargando ? (
             <div className="flex h-64 flex-col items-center justify-center gap-3 text-stone-500">
               <div className="h-8 w-8 animate-spin rounded-full border-2 border-stone-300 border-t-stone-800" />
-              <p className="text-sm">Cargando catálogo...</p>
+              <p className="text-sm">Cargando productos de librería...</p>
             </div>
           ) : filtradosLibreria.length === 0 ? (
             <div className="flex h-64 flex-col items-center justify-center rounded-xl border border-dashed border-stone-200 p-8 text-center text-stone-500">
               <BookOpenIcon className="h-10 w-10 text-stone-300 mb-2" />
-              <p className="text-base font-medium text-stone-700">No se encontraron productos de librería</p>
+              <p className="text-base font-medium text-stone-700">No se encontraron productos</p>
               <p className="mt-1 text-xs text-stone-500">
                 {busquedaLibreria
                   ? `No hay resultados para "${busquedaLibreria}"`
                   : "No hay productos registrados en esta categoría"}
               </p>
-              {busquedaLibreria && (
+              {onOpenQuickInventory && (
                 <button
                   type="button"
-                  onClick={() => setBusquedaLibreria("")}
-                  className="mt-3 text-xs font-semibold text-stone-800 hover:underline"
+                  onClick={() => onOpenQuickInventory()}
+                  className="mt-3 inline-flex items-center gap-1.5 rounded-lg bg-stone-900 px-3 py-1.5 text-xs font-bold text-white shadow-xs hover:bg-stone-800 transition"
                 >
-                  Limpiar búsqueda
+                  <PackagePlusIcon className="h-3.5 w-3.5" />
+                  <span>Registrar Primer Producto</span>
                 </button>
               )}
             </div>
@@ -341,7 +416,7 @@ export function ProductList({
                       </h3>
                     </div>
 
-                    {/* Price & Add button (ONLY way to add to cart) */}
+                    {/* Price & Add button */}
                     <div className="mt-3 flex items-center justify-between border-t border-stone-100 pt-2.5">
                       <span className="text-base font-bold text-stone-900">
                         {money.format(producto.precio)}
@@ -377,11 +452,51 @@ export function ProductList({
       {/* ================= Tab 2: Comida & Snacks ================= */}
       <div className={mainTab === "comida" ? "flex flex-1 flex-col overflow-hidden" : "hidden"}>
         {/* Header & Search */}
-        <div className="border-b border-stone-200 p-4 sm:p-5">
-          <div className="flex flex-wrap items-center justify-between gap-3">
+        <div className="border-b border-stone-200 p-4 sm:p-5 space-y-4">
+          {/* Palomitas Card with Fast Add */}
+          <div className="rounded-2xl border border-stone-200 bg-stone-50/80 p-3.5 space-y-2.5 shadow-2xs">
+            <div className="flex items-center justify-between">
+              <div className="flex items-center gap-2">
+                <span className="text-base">🍿</span>
+                <div>
+                  <h3 className="text-xs font-bold text-stone-900">Palomitas de Maíz (Preparadas)</h3>
+                  <p className="text-[11px] text-stone-500">Tarifa fija por porción (sin límite de stock rígido)</p>
+                </div>
+              </div>
+              <span className="rounded-md bg-white border border-stone-200 px-2 py-0.5 text-[10px] font-semibold text-stone-700">
+                Tarifa de Comida
+              </span>
+            </div>
+
+            <div className="grid grid-cols-2 sm:grid-cols-4 gap-2">
+              {[
+                { srv: srvPalomitasChica, label: "Chica" },
+                { srv: srvPalomitasMediana, label: "Mediana" },
+                { srv: srvPalomitasGrande, label: "Grande" },
+                { srv: srvPalomitasJumbo, label: "Jumbo" },
+              ].map((item) => (
+                <button
+                  key={item.srv.id}
+                  type="button"
+                  onClick={() => handleAddPalomitasDirect(item.srv, item.label)}
+                  className="flex items-center justify-between rounded-xl border border-stone-200 bg-white p-2.5 text-left hover:border-stone-400 hover:bg-stone-50 transition cursor-pointer shadow-2xs group"
+                >
+                  <div>
+                    <span className="block text-xs font-bold text-stone-800">{item.label}</span>
+                    <span className="block text-xs font-black text-stone-900">{money.format(item.srv.precio_actual)}</span>
+                  </div>
+                  <div className="rounded-lg bg-stone-900 group-hover:bg-stone-800 text-white p-1 transition">
+                    <PlusIcon className="h-3.5 w-3.5" />
+                  </div>
+                </button>
+              ))}
+            </div>
+          </div>
+
+          <div className="flex flex-wrap items-center justify-between gap-3 pt-1 border-t border-stone-100">
             <div className="flex items-center gap-2">
-              <h2 className="text-base font-semibold text-stone-900">Comida, Snacks & Bebidas</h2>
-              <span className="rounded-full bg-stone-100 px-2.5 py-0.5 text-xs font-medium text-stone-600">
+              <h2 className="text-xs font-bold uppercase text-stone-600">Artículos Empaquetados</h2>
+              <span className="rounded-full bg-stone-100 px-2 py-0.5 text-[10px] font-semibold text-stone-600">
                 {productosComida.length}
               </span>
             </div>
@@ -436,7 +551,7 @@ export function ProductList({
           </div>
 
           {/* Search Bar */}
-          <div className="relative mt-3">
+          <div className="relative">
             <div className="pointer-events-none absolute inset-y-0 left-0 flex items-center pl-3 text-stone-400">
               <SearchIcon className="h-5 w-5" />
             </div>
@@ -444,7 +559,7 @@ export function ProductList({
               type="text"
               value={busquedaComida}
               onChange={(e) => setBusquedaComida(e.target.value)}
-              placeholder="Buscar palomitas, bebidas, refrescos, frituras, dulces..."
+              placeholder="Buscar bebidas, refrescos, frituras, galletas..."
               className="w-full rounded-xl border border-stone-200 bg-stone-50 py-2 pl-10 pr-10 text-sm text-stone-900 outline-none transition placeholder:text-stone-400 focus:border-stone-500 focus:bg-white focus:ring-2 focus:ring-stone-200"
             />
             {busquedaComida && (
@@ -468,13 +583,13 @@ export function ProductList({
               <p className="text-sm">Cargando snacks y bebidas...</p>
             </div>
           ) : filtradosComida.length === 0 ? (
-            <div className="flex h-64 flex-col items-center justify-center rounded-xl border border-dashed border-stone-200 p-8 text-center text-stone-500">
-              <UtensilsIcon className="h-10 w-10 text-stone-300 mb-2" />
-              <p className="text-base font-medium text-stone-700">No se encontraron productos de comida</p>
+            <div className="flex h-48 flex-col items-center justify-center rounded-xl border border-dashed border-stone-200 p-6 text-center text-stone-500">
+              <UtensilsIcon className="h-8 w-8 text-stone-300 mb-2" />
+              <p className="text-sm font-medium text-stone-700">No hay productos empaquetados registrados</p>
               <p className="mt-1 text-xs text-stone-500">
                 {busquedaComida
                   ? `No hay resultados para "${busquedaComida}"`
-                  : "Aún no has registrado productos en la categoría de Comida & Snacks"}
+                  : "Registra refrescos, botanas o dulces en Comida & Snacks con su stock."}
               </p>
               {onOpenQuickInventory && (
                 <button
@@ -483,7 +598,7 @@ export function ProductList({
                   className="mt-3 inline-flex items-center gap-1.5 rounded-lg bg-stone-900 px-3 py-1.5 text-xs font-bold text-white shadow-xs hover:bg-stone-800 transition"
                 >
                   <PackagePlusIcon className="h-3.5 w-3.5" />
-                  <span>Agregar Producto de Comida</span>
+                  <span>Agregar Producto Físico</span>
                 </button>
               )}
             </div>
@@ -580,7 +695,7 @@ export function ProductList({
 
         {/* Footer count indicator */}
         <div className="border-t border-stone-100 bg-stone-50/70 px-4 py-2 text-xs text-stone-500">
-          Mostrando {filtradosComida.length} de {productosComida.length} artículos de comida y snacks
+          Mostrando {filtradosComida.length} de {productosComida.length} artículos empaquetados
         </div>
       </div>
 
@@ -589,7 +704,6 @@ export function ProductList({
         <ServicesSelector
           servicios={servicios}
           onAddServiceToCart={onAddServiceToCart}
-          onOpenQuickInventory={onOpenQuickInventory}
         />
       </div>
     </div>

@@ -3,6 +3,7 @@
 import { useEffect, useMemo, useState } from "react";
 import { createClient } from "@/lib/supabase/client";
 import type { Producto, CategoriaProducto } from "@/types/database";
+import { saveLocalProductCategory } from "@/lib/categoryStorage";
 import {
   BookOpenIcon,
   XMarkIcon,
@@ -118,13 +119,16 @@ export function QuickInventoryModal({
     setError(null);
 
     try {
+      // Save locally to cache immediately
+      saveLocalProductCategory(nombreLimpio, categoria);
+
       // Try insert with categoria
       let res = await supabase.from("productos").insert({
         nombre: nombreLimpio,
         precio: precioNum,
         stock: stockNum,
         categoria: categoria,
-      });
+      }).select("id, nombre, categoria").single();
 
       // Fallback if categoria column is missing in older schema
       if (res.error && res.error.message.includes("categoria")) {
@@ -132,7 +136,11 @@ export function QuickInventoryModal({
           nombre: nombreLimpio,
           precio: precioNum,
           stock: stockNum,
-        });
+        }).select("id, nombre").single();
+      }
+
+      if (res.data?.id) {
+        saveLocalProductCategory(res.data.id, categoria);
       }
 
       if (res.error) {

@@ -25,7 +25,7 @@ create index if not exists productos_categoria_idx on public.productos (categori
 create table if not exists public.servicios (
   id uuid primary key default gen_random_uuid(),
   codigo text unique not null,
-  categoria text not null check (categoria in ('fotocopias', 'impresiones', 'laminados', 'encolochados', 'sublimados', 'otros')),
+  categoria text not null check (categoria in ('fotocopias', 'impresiones', 'laminados', 'encolochados', 'sublimados', 'comida', 'otros')),
   nombre text not null,
   descripcion text,
   tipo_precio text not null default 'fijo' check (tipo_precio in ('fijo', 'por_unidad', 'variable')),

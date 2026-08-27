@@ -17,6 +17,7 @@ import {
   CheckCircleIcon,
   TagIcon,
   MoreHorizontalIcon,
+  UtensilsIcon,
 } from "@/components/pos/Icons";
 
 const money = new Intl.NumberFormat("es-MX", {
@@ -47,6 +48,10 @@ const CATEGORIAS_CONFIG: Record<
   sublimados: {
     label: "Artículos Sublimados",
     icon: TagIcon,
+  },
+  comida: {
+    label: "Palomitas & Comida Preparada",
+    icon: UtensilsIcon,
   },
   otros: {
     label: "Otros Servicios",
@@ -355,6 +360,7 @@ export default function ServiciosPage() {
               "impresiones",
               "laminados",
               "encolochados",
+              "comida",
             ] as CategoriaServicio[]
           ).map((catKey) => {
             const conf = CATEGORIAS_CONFIG[catKey];

@@ -5,6 +5,7 @@ import { FormEvent, useEffect, useMemo, useState } from "react";
 import { createClient } from "@/lib/supabase/client";
 import type { Producto, CategoriaProducto } from "@/types/database";
 import { SearchIcon, XMarkIcon, BookOpenIcon, UtensilsIcon } from "@/components/pos/Icons";
+import { resolveProductCategory, saveLocalProductCategory } from "@/lib/categoryStorage";
 
 const money = new Intl.NumberFormat("es-MX", {
   style: "currency",
@@ -23,7 +24,7 @@ function toProducto(row: {
     nombre: row.nombre,
     precio: Number(row.precio),
     stock: Number(row.stock),
-    categoria: (row.categoria as CategoriaProducto) || "libreria",
+    categoria: resolveProductCategory(row.categoria, row.id, row.nombre),
   };
 }
 
@@ -155,6 +156,9 @@ export default function InventarioPage() {
       return;
     }
 
+    saveLocalProductCategory(insertRes.data.id, categoria);
+    saveLocalProductCategory(nombreLimpio, categoria);
+
     const nuevo = toProducto(insertRes.data);
     setProductos((actuales) =>
       [...actuales, nuevo].sort((a, b) =>
@@ -229,6 +233,9 @@ export default function InventarioPage() {
       setErrorEdicion(updateRes.error.message);
       return;
     }
+
+    saveLocalProductCategory(productoEnEdicion.id, editCategoria);
+    saveLocalProductCategory(nombreLimpio, editCategoria);
 
     setProductos((actuales) =>
       actuales

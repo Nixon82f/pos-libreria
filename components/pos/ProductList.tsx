@@ -341,15 +341,15 @@ export function ProductList({
                       <div className="mb-2 flex items-center justify-between gap-2">
                         <div className="flex items-center gap-1.5 flex-wrap">
                           {sinStock ? (
-                            <span className="inline-flex items-center rounded-md bg-red-100 px-2 py-0.5 text-xs font-semibold text-red-700">
+                            <span className="inline-flex items-center rounded px-1.5 py-0.5 text-[11px] font-semibold text-red-700 bg-red-50 border border-red-200">
                               Agotado
                             </span>
                           ) : producto.stock <= 5 ? (
-                            <span className="inline-flex items-center rounded-md bg-amber-100 px-2 py-0.5 text-xs font-semibold text-amber-800">
-                              Stock bajo: {producto.stock} un.
+                            <span className="inline-flex items-center rounded px-1.5 py-0.5 text-[11px] font-semibold text-stone-900 bg-stone-100 border border-stone-300">
+                              Stock: {producto.stock} ud.
                             </span>
                           ) : (
-                            <span className="inline-flex items-center rounded-md bg-stone-100 px-2 py-0.5 text-xs font-medium text-stone-700">
+                            <span className="inline-flex items-center rounded px-1.5 py-0.5 text-[11px] font-medium text-stone-700 bg-stone-50 border border-stone-200">
                               Stock: {producto.stock}
                             </span>
                           )}
@@ -419,10 +419,10 @@ export function ProductList({
         {/* Header & Search */}
         <div className="border-b border-stone-200 p-4 sm:p-5 space-y-4">
           {/* Palomitas Fast Order with Custom Price & Quantity */}
-          <div className="rounded-2xl border border-stone-200 bg-stone-50/80 p-3.5 space-y-3 shadow-2xs">
+          <div className="rounded-xl border border-stone-200 bg-stone-50/70 p-3.5 space-y-3">
             <div className="flex items-center gap-2">
-              <span className="text-base">🍿</span>
-              <h3 className="text-xs font-bold text-stone-900">Palomitas de Maíz</h3>
+              <UtensilsIcon className="h-4 w-4 text-stone-700" />
+              <h3 className="text-xs font-bold text-stone-900 uppercase tracking-wide">Palomitas de Maíz</h3>
             </div>
 
             <div className="grid grid-cols-1 sm:grid-cols-[1fr_auto_auto] gap-2.5 items-end">
@@ -647,15 +647,15 @@ export function ProductList({
                       <div className="mb-2 flex items-center justify-between gap-2">
                         <div className="flex items-center gap-1.5 flex-wrap">
                           {sinStock ? (
-                            <span className="inline-flex items-center rounded-md bg-red-100 px-2 py-0.5 text-xs font-semibold text-red-700">
+                            <span className="inline-flex items-center rounded px-1.5 py-0.5 text-[11px] font-semibold text-red-700 bg-red-50 border border-red-200">
                               Agotado
                             </span>
                           ) : producto.stock <= 5 ? (
-                            <span className="inline-flex items-center rounded-md bg-amber-100 px-2 py-0.5 text-xs font-semibold text-amber-800">
-                              Stock bajo: {producto.stock} un.
+                            <span className="inline-flex items-center rounded px-1.5 py-0.5 text-[11px] font-semibold text-stone-900 bg-stone-100 border border-stone-300">
+                              Stock: {producto.stock} ud.
                             </span>
                           ) : (
-                            <span className="inline-flex items-center rounded-md bg-stone-100 px-2 py-0.5 text-xs font-medium text-stone-700">
+                            <span className="inline-flex items-center rounded px-1.5 py-0.5 text-[11px] font-medium text-stone-700 bg-stone-50 border border-stone-200">
                               Stock: {producto.stock}
                             </span>
                           )}

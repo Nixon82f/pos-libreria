@@ -11,7 +11,7 @@ export default function HomePage() {
   return (
     <main className="mx-auto flex min-h-screen max-w-4xl flex-col justify-center px-4 py-12 sm:px-6 lg:px-8">
       <div className="text-center mb-10">
-        <span className="rounded-full bg-stone-100 px-3 py-1 text-xs font-semibold text-stone-700">
+        <span className="rounded-md border border-stone-200 bg-stone-50 px-2.5 py-1 text-xs font-medium text-stone-700">
           Sistema POS & Inventario
         </span>
         <h1 className="mt-4 text-3xl font-extrabold tracking-tight text-stone-900 sm:text-4xl">

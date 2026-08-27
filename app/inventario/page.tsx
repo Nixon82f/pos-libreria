@@ -591,26 +591,32 @@ export default function InventarioPage() {
                     <tr key={p.id} className="hover:bg-stone-50/70 transition">
                       <td className="px-5 py-3 font-medium text-stone-900">{p.nombre}</td>
                       <td className="px-5 py-3">
-                        <span className={`inline-flex items-center gap-1 rounded-md px-2 py-0.5 text-xs font-semibold ${
-                          esComida
-                            ? "bg-amber-100 text-amber-800 border border-amber-200"
-                            : "bg-stone-100 text-stone-700 border border-stone-200"
-                        }`}>
-                          {esComida ? "🍿 Comida / Snack" : "📚 Librería"}
+                        <span className="inline-flex items-center gap-1.5 text-xs font-medium text-stone-700">
+                          {esComida ? (
+                            <>
+                              <UtensilsIcon className="h-3.5 w-3.5 text-stone-500" />
+                              <span>Comida / Snacks</span>
+                            </>
+                          ) : (
+                            <>
+                              <BookOpenIcon className="h-3.5 w-3.5 text-stone-500" />
+                              <span>Librería & Útiles</span>
+                            </>
+                          )}
                         </span>
                       </td>
                       <td className="px-5 py-3 font-medium text-stone-900">{money.format(p.precio)}</td>
                       <td className="px-5 py-3">
                         <span
-                          className={`inline-flex rounded-full px-2.5 py-0.5 text-xs font-medium ${
+                          className={`inline-flex items-center rounded-md px-2 py-0.5 text-xs font-medium ${
                             p.stock === 0
-                              ? "bg-red-100 text-red-800"
+                              ? "bg-red-50 text-red-700 border border-red-200"
                               : p.stock <= 5
-                              ? "bg-amber-100 text-amber-800"
-                              : "bg-stone-100 text-stone-800"
+                              ? "bg-stone-100 text-stone-900 border border-stone-300 font-semibold"
+                              : "bg-stone-50 text-stone-700 border border-stone-200"
                           }`}
                         >
-                          {p.stock} unidad{p.stock === 1 ? "" : "es"}
+                          {p.stock} {p.stock === 1 ? "ud." : "uds."}
                         </span>
                       </td>
                       <td className="px-5 py-3 text-right">

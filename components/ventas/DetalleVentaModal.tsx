@@ -122,6 +122,7 @@ export function DetalleVentaModal({
 
   async function handleGuardarEdicion(e: React.FormEvent) {
     e.preventDefault();
+    if (!venta) return;
     if (itemsEditables.length === 0) {
       setErrorEdicion("Debe haber al menos un artículo.");
       return;

@@ -12,6 +12,7 @@ import type {
   Servicio,
   Venta,
 } from "@/types/database";
+import { DEFAULT_SERVICIOS } from "@/types/database";
 import { ProductList } from "@/components/pos/ProductList";
 import { Cart } from "@/components/pos/Cart";
 import { CheckoutModal } from "@/components/pos/CheckoutModal";
@@ -36,9 +37,9 @@ function toProducto(row: {
 export default function PosPage() {
   const supabase = useMemo(() => createClient(), []);
 
-  // Products and inventory state
+  // Products and inventory state (servicios pre-initialized for instant 0ms render)
   const [productos, setProductos] = useState<Producto[]>([]);
-  const [servicios, setServicios] = useState<Servicio[]>([]);
+  const [servicios, setServicios] = useState<Servicio[]>(DEFAULT_SERVICIOS);
   const [cargando, setCargando] = useState(true);
   const [errorGeneral, setErrorGeneral] = useState<string | null>(null);
 
@@ -78,66 +79,74 @@ export default function PosPage() {
     return () => window.removeEventListener("keydown", handleGlobalKeyDown);
   }, [handleOpenQuickInventory]);
 
-  // Fetch products from Supabase
+  // Fetch products and services concurrently from Supabase
   const cargarCatalogo = useCallback(async () => {
     setErrorGeneral(null);
 
-    // 1. Fetch physical products
-    const { data: dataProd, error: errorProd } = await supabase
-      .from("productos")
-      .select("id, nombre, precio, stock")
-      .order("nombre", { ascending: true });
+    try {
+      const [resProd, resServ] = await Promise.all([
+        supabase
+          .from("productos")
+          .select("id, nombre, precio, stock")
+          .order("nombre", { ascending: true }),
+        supabase
+          .from("servicios")
+          .select("*")
+          .eq("activo", true)
+          .order("categoria", { ascending: true }),
+      ]);
 
-    if (errorProd) {
-      setErrorGeneral(errorProd.message);
-      return;
+      if (resProd.error) {
+        setErrorGeneral(resProd.error.message);
+      } else if (resProd.data) {
+        const listaProd = resProd.data.map(toProducto);
+        setProductos(listaProd);
+
+        // Synchronize current cart quantities with fresh stock for products
+        setCartItems((prevItems) => {
+          return prevItems
+            .map((item) => {
+              if (item.tipo === "servicio") {
+                return item;
+              }
+              const prodActualizado = listaProd.find(
+                (p) => p.id === item.producto.id
+              );
+              if (!prodActualizado || prodActualizado.stock === 0) {
+                return null;
+              }
+              return {
+                ...item,
+                producto: prodActualizado,
+                cantidad: Math.min(item.cantidad, prodActualizado.stock),
+              };
+            })
+            .filter((item): item is CartItem => item !== null);
+        });
+      }
+
+      if (!resServ.error && resServ.data && resServ.data.length > 0) {
+        setServicios(
+          resServ.data.map((s) => ({
+            id: s.id,
+            codigo: s.codigo,
+            categoria: s.categoria,
+            nombre: s.nombre,
+            descripcion: s.descripcion,
+            tipo_precio: s.tipo_precio,
+            precio_actual: Number(s.precio_actual),
+            version_precio: Number(s.version_precio),
+            activo: Boolean(s.activo),
+            created_at: s.created_at,
+            updated_at: s.updated_at,
+          }))
+        );
+      }
+    } catch (err: unknown) {
+      console.error("Error al cargar catálogo:", err);
+    } finally {
+      setCargando(false);
     }
-
-    const listaProd = (dataProd ?? []).map(toProducto);
-    setProductos(listaProd);
-
-    // 2. Fetch services catalog
-    const { data: dataServ, error: errorServ } = await supabase
-      .from("servicios")
-      .select("*")
-      .eq("activo", true)
-      .order("categoria", { ascending: true });
-
-    if (!errorServ && dataServ) {
-      setServicios(
-        dataServ.map((s) => ({
-          id: s.id,
-          codigo: s.codigo,
-          categoria: s.categoria,
-          nombre: s.nombre,
-          descripcion: s.descripcion,
-          tipo_precio: s.tipo_precio,
-          precio_actual: Number(s.precio_actual),
-          version_precio: Number(s.version_precio),
-          activo: Boolean(s.activo),
-          created_at: s.created_at,
-          updated_at: s.updated_at,
-        }))
-      );
-    }
-
-    // Synchronize current cart quantities with fresh stock for products
-    setCartItems((prevItems) => {
-      return prevItems
-        .map((item) => {
-          if (item.tipo === "servicio") {
-            return item; // Services don't have physical inventory bounds
-          }
-          const freshProd = listaProd.find((p) => p.id === item.producto.id);
-          if (!freshProd || freshProd.stock <= 0) return null;
-          return {
-            ...item,
-            producto: freshProd,
-            cantidad: Math.min(item.cantidad, freshProd.stock),
-          };
-        })
-        .filter((item): item is CartItem => item !== null);
-    });
   }, [supabase]);
 
   useEffect(() => {

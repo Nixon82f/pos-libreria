@@ -4,6 +4,7 @@ import Link from "next/link";
 import { useEffect, useMemo, useState, useCallback } from "react";
 import { createClient } from "@/lib/supabase/client";
 import type { Servicio, ServicioHistorialPrecio, CategoriaServicio } from "@/types/database";
+import { DEFAULT_SERVICIOS } from "@/types/database";
 import {
   CopyIcon,
   PrinterIcon,
@@ -51,8 +52,9 @@ const CATEGORIAS_CONFIG: Record<
 export default function ServiciosPage() {
   const supabase = useMemo(() => createClient(), []);
 
-  const [servicios, setServicios] = useState<Servicio[]>([]);
-  const [cargando, setCargando] = useState(true);
+  // Pre-initialize with DEFAULT_SERVICIOS for instant 0ms load
+  const [servicios, setServicios] = useState<Servicio[]>(DEFAULT_SERVICIOS);
+  const [cargando, setCargando] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [mensajeExito, setMensajeExito] = useState<string | null>(null);
 

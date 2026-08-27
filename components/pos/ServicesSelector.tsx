@@ -10,6 +10,7 @@ import {
   TagIcon,
   PlusIcon,
   PackagePlusIcon,
+  MoreHorizontalIcon,
 } from "./Icons";
 
 const money = new Intl.NumberFormat("es-MX", {
@@ -26,9 +27,10 @@ interface ServicesSelectorProps {
 type TabServicio =
   | "fotocopias"
   | "impresiones"
-  | "encolochados"
   | "laminados"
-  | "sublimados";
+  | "encolochados"
+  | "sublimados"
+  | "otros";
 
 export function ServicesSelector({
   servicios,
@@ -42,13 +44,15 @@ export function ServicesSelector({
     return servicios.find((s) => s.codigo === codigo);
   };
 
-  // State 1: Fotocopias (string to allow full deletion/typing)
+  // State 1: Fotocopias (Color has variable price per page)
   const [fotocopiaModalidad, setFotocopiaModalidad] = useState<"bn" | "color">("bn");
   const [fotocopiaPaginas, setFotocopiaPaginas] = useState<string>("1");
+  const [fotocopiaColorPrecioPorPagina, setFotocopiaColorPrecioPorPagina] = useState<string>("5.00");
 
-  // State 2: Impresiones
+  // State 2: Impresiones (Color has variable price per page)
   const [impresionModalidad, setImpresionModalidad] = useState<"bn" | "color">("bn");
   const [impresionPaginas, setImpresionPaginas] = useState<string>("1");
+  const [impresionColorPrecioPorPagina, setImpresionColorPrecioPorPagina] = useState<string>("6.00");
 
   // State 3: Encolochados
   const [encolochadoHojas, setEncolochadoHojas] = useState<string>("20");
@@ -61,6 +65,11 @@ export function ServicesSelector({
   const [sublimadoDesc, setSublimadoDesc] = useState<string>("Taza blanca personalizada");
   const [sublimadoPrecioUnitario, setSublimadoPrecioUnitario] = useState<string>("65.00");
   const [sublimadoCantidad, setSublimadoCantidad] = useState<string>("1");
+
+  // State 6: Otro Servicio (Extra / Personalizado)
+  const [otroNombre, setOtroNombre] = useState<string>("Escaneo de documentos");
+  const [otroPrecioUnitario, setOtroPrecioUnitario] = useState<string>("10.00");
+  const [otroCantidad, setOtroCantidad] = useState<string>("1");
 
   // Service lookup references with fallback prices
   const srvFotocopiaBn = getServicio("fotocopia_bn") || {
@@ -78,7 +87,7 @@ export function ServicesSelector({
     codigo: "fotocopia_color",
     categoria: "fotocopias",
     nombre: "Fotocopia Color",
-    tipo_precio: "por_unidad",
+    tipo_precio: "variable",
     precio_actual: 5.0,
     version_precio: 1,
     activo: true,
@@ -99,7 +108,7 @@ export function ServicesSelector({
     codigo: "impresion_color",
     categoria: "impresiones",
     nombre: "Impresión Color",
-    tipo_precio: "por_unidad",
+    tipo_precio: "variable",
     precio_actual: 6.0,
     version_precio: 1,
     activo: true,
@@ -148,36 +157,53 @@ export function ServicesSelector({
     activo: true,
   };
 
+  const srvOtro = getServicio("servicio_otro") || {
+    id: "mock-otro",
+    codigo: "servicio_otro",
+    categoria: "otros",
+    nombre: "Otro Servicio",
+    tipo_precio: "variable",
+    precio_actual: 0.0,
+    version_precio: 1,
+    activo: true,
+  };
+
   // Handlers for adding services to cart
   const handleAddFotocopia = () => {
-    const srv = fotocopiaModalidad === "bn" ? srvFotocopiaBn : srvFotocopiaColor;
     const paginas = Math.max(1, parseInt(fotocopiaPaginas, 10) || 1);
-    const etiquetaModalidad = fotocopiaModalidad === "bn" ? "B&N" : "Color";
+    const esColor = fotocopiaModalidad === "color";
+    const srv = esColor ? srvFotocopiaColor : srvFotocopiaBn;
+    const precioUnitario = esColor
+      ? Math.max(0, parseFloat(fotocopiaColorPrecioPorPagina) || 0)
+      : srvFotocopiaBn.precio_actual;
 
     onAddServiceToCart({
       tipo: "servicio",
       servicio: srv,
       nombre: srv.nombre,
-      descripcion_personalizada: `${paginas} pág(s) ${etiquetaModalidad}`,
+      descripcion_personalizada: `${paginas} pág(s) ${esColor ? `Color ($${precioUnitario}/pág)` : "B&N"}`,
       cantidad: paginas,
-      precio_unitario: srv.precio_actual,
-      opcion: etiquetaModalidad,
+      precio_unitario: precioUnitario,
+      opcion: esColor ? "Color" : "B&N",
     });
   };
 
   const handleAddImpresion = () => {
-    const srv = impresionModalidad === "bn" ? srvImpresionBn : srvImpresionColor;
     const paginas = Math.max(1, parseInt(impresionPaginas, 10) || 1);
-    const etiquetaModalidad = impresionModalidad === "bn" ? "B&N" : "Color";
+    const esColor = impresionModalidad === "color";
+    const srv = esColor ? srvImpresionColor : srvImpresionBn;
+    const precioUnitario = esColor
+      ? Math.max(0, parseFloat(impresionColorPrecioPorPagina) || 0)
+      : srvImpresionBn.precio_actual;
 
     onAddServiceToCart({
       tipo: "servicio",
       servicio: srv,
       nombre: srv.nombre,
-      descripcion_personalizada: `${paginas} pág(s) ${etiquetaModalidad}`,
+      descripcion_personalizada: `${paginas} pág(s) ${esColor ? `Color ($${precioUnitario}/pág)` : "B&N"}`,
       cantidad: paginas,
-      precio_unitario: srv.precio_actual,
-      opcion: etiquetaModalidad,
+      precio_unitario: precioUnitario,
+      opcion: esColor ? "Color" : "B&N",
     });
   };
 
@@ -221,6 +247,22 @@ export function ServicesSelector({
       descripcion_personalizada: `${desc} (x${cant})`,
       cantidad: cant,
       precio_unitario: pUni,
+    });
+  };
+
+  const handleAddOtroServicio = () => {
+    const pUni = parseFloat(otroPrecioUnitario) || 0;
+    const cant = Math.max(1, parseInt(otroCantidad, 10) || 1);
+    const nombre = otroNombre.trim() || "Otro Servicio";
+
+    onAddServiceToCart({
+      tipo: "servicio",
+      servicio: srvOtro,
+      nombre: nombre,
+      descripcion_personalizada: `${nombre} (x${cant})`,
+      cantidad: cant,
+      precio_unitario: pUni,
+      opcion: "Personalizado",
     });
   };
 
@@ -293,6 +335,19 @@ export function ServicesSelector({
             <TagIcon className="h-4 w-4" />
             <span>Sublimados</span>
           </button>
+
+          <button
+            type="button"
+            onClick={() => setTabActiva("otros")}
+            className={`flex items-center gap-2 rounded-xl py-2 px-3.5 text-xs font-bold transition-all whitespace-nowrap ${
+              tabActiva === "otros"
+                ? "bg-stone-900 text-white shadow-xs"
+                : "bg-white text-stone-700 hover:bg-stone-100 border border-stone-200/80"
+            }`}
+          >
+            <MoreHorizontalIcon className="h-4 w-4" />
+            <span>Otro</span>
+          </button>
         </div>
 
         {onOpenQuickInventory && (
@@ -319,7 +374,7 @@ export function ServicesSelector({
                   Servicio de Fotocopiado
                 </h3>
                 <p className="text-xs text-stone-500">
-                  Calculado automáticamente según cantidad de páginas.
+                  B&N con tarifa de catálogo y Color con tarifa libre en caja.
                 </p>
               </div>
             </div>
@@ -344,7 +399,7 @@ export function ServicesSelector({
                   </span>
                 </div>
                 <p className="text-xs text-stone-500">
-                  Texto simple, copias estándar.
+                  Tarifa fija de catálogo.
                 </p>
               </button>
 
@@ -361,15 +416,50 @@ export function ServicesSelector({
                   <span className="text-xs font-bold uppercase text-stone-700">
                     A Todo Color
                   </span>
-                  <span className="font-extrabold text-sm text-stone-900">
-                    {money.format(srvFotocopiaColor.precio_actual)} / pág
+                  <span className="font-extrabold text-xs text-stone-600 bg-stone-100 px-2 py-0.5 rounded-md border border-stone-200">
+                    Tarifa Variable
                   </span>
                 </div>
                 <p className="text-xs text-stone-500">
-                  Gráficos, imágenes y portadas.
+                  Precio editable según cobertura de tinta.
                 </p>
               </button>
             </div>
+
+            {/* Color Price per Page Input if Color selected */}
+            {fotocopiaModalidad === "color" && (
+              <div className="rounded-xl border border-stone-200 bg-stone-50/50 p-4 space-y-2">
+                <label className="block text-xs font-bold text-stone-700">
+                  Costo por Página a Color ($)
+                </label>
+                <div className="flex items-center gap-3">
+                  <input
+                    type="number"
+                    step="0.50"
+                    min="0"
+                    value={fotocopiaColorPrecioPorPagina}
+                    onChange={(e) => setFotocopiaColorPrecioPorPagina(e.target.value)}
+                    className="w-28 rounded-xl border border-stone-300 bg-white p-2.5 text-center text-base font-bold text-stone-900 outline-none focus:border-stone-600"
+                  />
+                  <div className="flex flex-wrap gap-1.5">
+                    {["3.00", "5.00", "7.00", "10.00"].map((p) => (
+                      <button
+                        key={p}
+                        type="button"
+                        onClick={() => setFotocopiaColorPrecioPorPagina(p)}
+                        className={`rounded-lg px-2.5 py-1.5 text-xs font-medium transition ${
+                          fotocopiaColorPrecioPorPagina === p
+                            ? "bg-stone-900 text-white"
+                            : "bg-white text-stone-700 border border-stone-200 hover:bg-stone-100"
+                        }`}
+                      >
+                        ${p}
+                      </button>
+                    ))}
+                  </div>
+                </div>
+              </div>
+            )}
 
             {/* Pages Input & Quick Steppers */}
             <div className="rounded-xl border border-stone-200 bg-stone-50/50 p-4 space-y-3">
@@ -419,7 +509,7 @@ export function ServicesSelector({
                   {money.format(
                     (fotocopiaModalidad === "bn"
                       ? srvFotocopiaBn.precio_actual
-                      : srvFotocopiaColor.precio_actual) *
+                      : Math.max(0, parseFloat(fotocopiaColorPrecioPorPagina) || 0)) *
                       Math.max(1, parseInt(fotocopiaPaginas, 10) || 1)
                   )}
                 </div>
@@ -446,7 +536,7 @@ export function ServicesSelector({
                   Servicio de Impresión Digital
                 </h3>
                 <p className="text-xs text-stone-500">
-                  Impresión directa desde USB, correo o teléfono.
+                  B&N con tarifa de catálogo y Color con tarifa libre en caja.
                 </p>
               </div>
             </div>
@@ -488,15 +578,50 @@ export function ServicesSelector({
                   <span className="text-xs font-bold uppercase text-stone-700">
                     Color HD
                   </span>
-                  <span className="font-extrabold text-sm text-stone-900">
-                    {money.format(srvImpresionColor.precio_actual)} / pág
+                  <span className="font-extrabold text-xs text-stone-600 bg-stone-100 px-2 py-0.5 rounded-md border border-stone-200">
+                    Tarifa Variable
                   </span>
                 </div>
                 <p className="text-xs text-stone-500">
-                  Imágenes, diapositivas y proyectos.
+                  Precio según cantidad de color y tipo de papel.
                 </p>
               </button>
             </div>
+
+            {/* Color Price per Page Input if Color selected */}
+            {impresionModalidad === "color" && (
+              <div className="rounded-xl border border-stone-200 bg-stone-50/50 p-4 space-y-2">
+                <label className="block text-xs font-bold text-stone-700">
+                  Costo por Página a Color ($)
+                </label>
+                <div className="flex items-center gap-3">
+                  <input
+                    type="number"
+                    step="0.50"
+                    min="0"
+                    value={impresionColorPrecioPorPagina}
+                    onChange={(e) => setImpresionColorPrecioPorPagina(e.target.value)}
+                    className="w-28 rounded-xl border border-stone-300 bg-white p-2.5 text-center text-base font-bold text-stone-900 outline-none focus:border-stone-600"
+                  />
+                  <div className="flex flex-wrap gap-1.5">
+                    {["4.00", "6.00", "8.00", "12.00", "15.00"].map((p) => (
+                      <button
+                        key={p}
+                        type="button"
+                        onClick={() => setImpresionColorPrecioPorPagina(p)}
+                        className={`rounded-lg px-2.5 py-1.5 text-xs font-medium transition ${
+                          impresionColorPrecioPorPagina === p
+                            ? "bg-stone-900 text-white"
+                            : "bg-white text-stone-700 border border-stone-200 hover:bg-stone-100"
+                        }`}
+                      >
+                        ${p}
+                      </button>
+                    ))}
+                  </div>
+                </div>
+              </div>
+            )}
 
             {/* Pages Input & Quick Steppers */}
             <div className="rounded-xl border border-stone-200 bg-stone-50/50 p-4 space-y-3">
@@ -546,7 +671,7 @@ export function ServicesSelector({
                   {money.format(
                     (impresionModalidad === "bn"
                       ? srvImpresionBn.precio_actual
-                      : srvImpresionColor.precio_actual) *
+                      : Math.max(0, parseFloat(impresionColorPrecioPorPagina) || 0)) *
                       Math.max(1, parseInt(impresionPaginas, 10) || 1)
                   )}
                 </div>
@@ -875,6 +1000,122 @@ export function ServicesSelector({
               <button
                 type="button"
                 onClick={handleAddSublimado}
+                className="flex items-center gap-2 rounded-xl bg-stone-900 px-5 py-3 text-xs font-bold text-white shadow-xs hover:bg-stone-800 active:scale-95 transition cursor-pointer"
+              >
+                <PlusIcon className="h-4 w-4" />
+                <span>Agregar al Carrito</span>
+              </button>
+            </div>
+          </div>
+        )}
+
+        {/* ================= 6. OTRO SERVICIO ================= */}
+        {tabActiva === "otros" && (
+          <div className="max-w-xl mx-auto space-y-5">
+            <div className="flex items-center justify-between">
+              <div>
+                <h3 className="text-base font-bold text-stone-900">
+                  Otro Servicio / Cobro Extra
+                </h3>
+                <p className="text-xs text-stone-500">
+                  Registra trámites, escaneos, asesorías o cualquier servicio adicional.
+                </p>
+              </div>
+            </div>
+
+            {/* Quick Templates for other services */}
+            <div className="space-y-1.5">
+              <label className="block text-xs font-bold text-stone-700">
+                Atajos Frecuentes
+              </label>
+              <div className="flex flex-wrap gap-2">
+                {[
+                  { nom: "Escaneo de documentos", precio: "10.00" },
+                  { nom: "Trámite / Consulta por internet", precio: "25.00" },
+                  { nom: "Descarga e impresión de archivo", precio: "15.00" },
+                  { nom: "Diseño gráfico / Edición rápida", precio: "50.00" },
+                  { nom: "Recarga de tóner / cartucho", precio: "80.00" },
+                ].map((item, idx) => (
+                  <button
+                    key={idx}
+                    type="button"
+                    onClick={() => {
+                      setOtroNombre(item.nom);
+                      setOtroPrecioUnitario(item.precio);
+                    }}
+                    className="rounded-lg bg-stone-100 px-2.5 py-1.5 text-xs font-medium text-stone-700 hover:bg-stone-200 border border-stone-200 transition cursor-pointer"
+                  >
+                    {item.nom} ({money.format(parseFloat(item.precio))})
+                  </button>
+                ))}
+              </div>
+            </div>
+
+            {/* Service Name */}
+            <div className="space-y-1">
+              <label className="block text-xs font-bold text-stone-700">
+                Nombre / Concepto del Servicio
+              </label>
+              <input
+                type="text"
+                value={otroNombre}
+                onChange={(e) => setOtroNombre(e.target.value)}
+                placeholder="Ej. Escaneo de 10 hojas, Trámite CURP/Acta, Formato digital..."
+                className="w-full rounded-xl border border-stone-300 bg-white p-2.5 text-xs text-stone-900 outline-none focus:border-stone-600"
+              />
+            </div>
+
+            {/* Unit Price & Quantity */}
+            <div className="grid grid-cols-2 gap-3">
+              <div>
+                <label className="block text-xs font-bold text-stone-700 mb-1">
+                  Precio / Monto ($)
+                </label>
+                <input
+                  type="number"
+                  step="0.50"
+                  min="0"
+                  value={otroPrecioUnitario}
+                  onChange={(e) => setOtroPrecioUnitario(e.target.value)}
+                  className="w-full rounded-xl border border-stone-300 bg-white p-2.5 text-sm font-bold text-stone-900 outline-none focus:border-stone-600"
+                />
+              </div>
+
+              <div>
+                <label className="block text-xs font-bold text-stone-700 mb-1">
+                  Cantidad
+                </label>
+                <input
+                  type="number"
+                  min="1"
+                  step="1"
+                  value={otroCantidad}
+                  onChange={(e) => setOtroCantidad(e.target.value)}
+                  onBlur={() => {
+                    if (!otroCantidad || parseInt(otroCantidad, 10) < 1) {
+                      setOtroCantidad("1");
+                    }
+                  }}
+                  className="w-full rounded-xl border border-stone-300 bg-white p-2.5 text-sm font-bold text-stone-900 outline-none focus:border-stone-600 text-center"
+                />
+              </div>
+            </div>
+
+            {/* Subtotal & Add Button */}
+            <div className="flex items-center justify-between rounded-xl bg-stone-100/70 p-4 border border-stone-200">
+              <div>
+                <span className="text-xs text-stone-500">Subtotal del servicio:</span>
+                <div className="text-xl font-black text-stone-900">
+                  {money.format(
+                    (parseFloat(otroPrecioUnitario) || 0) *
+                      Math.max(1, parseInt(otroCantidad, 10) || 1)
+                  )}
+                </div>
+              </div>
+
+              <button
+                type="button"
+                onClick={handleAddOtroServicio}
                 className="flex items-center gap-2 rounded-xl bg-stone-900 px-5 py-3 text-xs font-bold text-white shadow-xs hover:bg-stone-800 active:scale-95 transition cursor-pointer"
               >
                 <PlusIcon className="h-4 w-4" />

@@ -11,11 +11,13 @@ create table if not exists public.productos (
   nombre text not null,
   precio numeric(10, 2) not null check (precio >= 0),
   stock integer not null default 0 check (stock >= 0),
+  categoria text not null default 'libreria' check (categoria in ('libreria', 'comida')),
   created_at timestamptz not null default now()
 );
 
 create index if not exists productos_nombre_idx
   on public.productos using gin (to_tsvector('spanish', nombre));
+create index if not exists productos_categoria_idx on public.productos (categoria);
 
 -- -----------------------------------------------------------------------------
 -- 2. servicios (Catálogo de Servicios Independientes)
@@ -23,7 +25,7 @@ create index if not exists productos_nombre_idx
 create table if not exists public.servicios (
   id uuid primary key default gen_random_uuid(),
   codigo text unique not null,
-  categoria text not null check (categoria in ('fotocopias', 'impresiones', 'laminados', 'encolochados', 'sublimados')),
+  categoria text not null check (categoria in ('fotocopias', 'impresiones', 'laminados', 'encolochados', 'sublimados', 'otros')),
   nombre text not null,
   descripcion text,
   tipo_precio text not null default 'fijo' check (tipo_precio in ('fijo', 'por_unidad', 'variable')),

@@ -3,7 +3,8 @@ export type CategoriaServicio =
   | "impresiones"
   | "laminados"
   | "encolochados"
-  | "sublimados";
+  | "sublimados"
+  | "otros";
 
 export type TipoPrecioServicio = "fijo" | "por_unidad" | "variable";
 
@@ -38,8 +39,8 @@ export const DEFAULT_SERVICIOS: Servicio[] = [
     codigo: "fotocopia_color",
     categoria: "fotocopias",
     nombre: "Fotocopia Color",
-    descripcion: "Copia a color de alta resolución.",
-    tipo_precio: "por_unidad",
+    descripcion: "Copia a color con tarifa variable según cobertura de tinta.",
+    tipo_precio: "variable",
     precio_actual: 5.0,
     version_precio: 1,
     activo: true,
@@ -60,8 +61,8 @@ export const DEFAULT_SERVICIOS: Servicio[] = [
     codigo: "impresion_color",
     categoria: "impresiones",
     nombre: "Impresión Color",
-    descripcion: "Impresión a color en papel bond.",
-    tipo_precio: "por_unidad",
+    descripcion: "Impresión a color con tarifa variable según tipo de archivo.",
+    tipo_precio: "variable",
     precio_actual: 6.0,
     version_precio: 1,
     activo: true,
@@ -110,6 +111,17 @@ export const DEFAULT_SERVICIOS: Servicio[] = [
     version_precio: 1,
     activo: true,
   },
+  {
+    id: "mock-otro",
+    codigo: "servicio_otro",
+    categoria: "otros",
+    nombre: "Otro Servicio",
+    descripcion: "Servicio personalizado, trámite o cobro extra.",
+    tipo_precio: "variable",
+    precio_actual: 0.0,
+    version_precio: 1,
+    activo: true,
+  },
 ];
 
 export type ServicioHistorialPrecio = {
@@ -149,11 +161,14 @@ export type ItemVendido = {
   precio_unitario: number;
 };
 
+export type CategoriaProducto = "libreria" | "comida";
+
 export type Producto = {
   id: string;
   nombre: string;
   precio: number;
   stock: number;
+  categoria?: CategoriaProducto | string;
 };
 
 export type Venta = {

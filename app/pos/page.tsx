@@ -9,6 +9,7 @@ import type {
   CartItemServicio,
   MetodoPago,
   Producto,
+  CategoriaProducto,
   Servicio,
   Venta,
 } from "@/types/database";
@@ -25,12 +26,14 @@ function toProducto(row: {
   nombre: string;
   precio: number | string;
   stock: number | string;
+  categoria?: string;
 }): Producto {
   return {
     id: row.id,
     nombre: row.nombre,
     precio: Number(row.precio),
     stock: Number(row.stock),
+    categoria: (row.categoria as CategoriaProducto) || "libreria",
   };
 }
 
@@ -87,7 +90,7 @@ export default function PosPage() {
       const [resProd, resServ] = await Promise.all([
         supabase
           .from("productos")
-          .select("id, nombre, precio, stock")
+          .select("id, nombre, precio, stock, categoria")
           .order("nombre", { ascending: true }),
         supabase
           .from("servicios")
@@ -96,10 +99,27 @@ export default function PosPage() {
           .order("categoria", { ascending: true }),
       ]);
 
-      if (resProd.error) {
+      let prodRows: Array<{ id: string; nombre: string; precio: number | string; stock: number | string; categoria?: string }> = [];
+
+      if (resProd.error && resProd.error.message.includes("categoria")) {
+        const { data: dataFallback, error: errFallback } = await supabase
+          .from("productos")
+          .select("id, nombre, precio, stock")
+          .order("nombre", { ascending: true });
+
+        if (errFallback) {
+          setErrorGeneral(errFallback.message);
+        } else if (dataFallback) {
+          prodRows = dataFallback;
+        }
+      } else if (resProd.error) {
         setErrorGeneral(resProd.error.message);
       } else if (resProd.data) {
-        const listaProd = resProd.data.map(toProducto);
+        prodRows = resProd.data;
+      }
+
+      if (prodRows.length > 0) {
+        const listaProd = prodRows.map(toProducto);
         setProductos(listaProd);
 
         // Synchronize current cart quantities with fresh stock for products

@@ -409,4 +409,46 @@ export function PackagePlusIcon(props: SVGProps<SVGSVGElement>) {
   );
 }
 
+export function UtensilsIcon(props: SVGProps<SVGSVGElement>) {
+  return (
+    <svg
+      xmlns="http://www.w3.org/2000/svg"
+      viewBox="0 0 24 24"
+      fill="none"
+      stroke="currentColor"
+      strokeWidth={2}
+      strokeLinecap="round"
+      strokeLinejoin="round"
+      aria-hidden="true"
+      {...props}
+    >
+      <path d="M18 2v6a3 3 0 0 1-3 3 3 3 0 0 1-3-3V2" />
+      <path d="M15 2v14" />
+      <path d="M9 2v4a3 3 0 0 1-3 3v0a3 3 0 0 1-3-3V2" />
+      <path d="M6 2v20" />
+      <path d="M18 16v6" />
+    </svg>
+  );
+}
+
+export function MoreHorizontalIcon(props: SVGProps<SVGSVGElement>) {
+  return (
+    <svg
+      xmlns="http://www.w3.org/2000/svg"
+      viewBox="0 0 24 24"
+      fill="none"
+      stroke="currentColor"
+      strokeWidth={2}
+      strokeLinecap="round"
+      strokeLinejoin="round"
+      aria-hidden="true"
+      {...props}
+    >
+      <circle cx="12" cy="12" r="1" />
+      <circle cx="19" cy="12" r="1" />
+      <circle cx="5" cy="12" r="1" />
+    </svg>
+  );
+}
+
 

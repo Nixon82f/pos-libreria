@@ -16,6 +16,7 @@ import {
   XMarkIcon,
   CheckCircleIcon,
   TagIcon,
+  MoreHorizontalIcon,
 } from "@/components/pos/Icons";
 
 const money = new Intl.NumberFormat("es-MX", {
@@ -46,6 +47,10 @@ const CATEGORIAS_CONFIG: Record<
   sublimados: {
     label: "Artículos Sublimados",
     icon: TagIcon,
+  },
+  otros: {
+    label: "Otros Servicios",
+    icon: MoreHorizontalIcon,
   },
 };
 
@@ -231,17 +236,27 @@ export default function ServiciosPage() {
     setCargandoHistorial(false);
   };
 
-  // Group services by category
-  const serviciosPorCategoria = useMemo(() => {
-    const grupos: Record<CategoriaServicio, Servicio[]> = {
+  // Group services by category (Only fixed rate tariffs that are configured in catalog)
+  const serviciosFijosPorCategoria = useMemo(() => {
+    const grupos: Record<string, Servicio[]> = {
       fotocopias: [],
       impresiones: [],
       laminados: [],
       encolochados: [],
-      sublimados: [],
     };
 
     for (const s of servicios) {
+      // Exclude variable services from fixed tariff administration
+      if (
+        s.codigo === "fotocopia_color" ||
+        s.codigo === "impresion_color" ||
+        s.codigo === "sublimado_articulo" ||
+        s.codigo === "servicio_otro" ||
+        s.tipo_precio === "variable"
+      ) {
+        continue;
+      }
+
       if (grupos[s.categoria]) {
         grupos[s.categoria].push(s);
       }
@@ -340,11 +355,11 @@ export default function ServiciosPage() {
               "impresiones",
               "laminados",
               "encolochados",
-              "sublimados",
             ] as CategoriaServicio[]
           ).map((catKey) => {
             const conf = CATEGORIAS_CONFIG[catKey];
-            const items = serviciosPorCategoria[catKey] || [];
+            const items = serviciosFijosPorCategoria[catKey] || [];
+            if (!conf || items.length === 0) return null;
             const Icon = conf.icon;
 
             return (
@@ -363,13 +378,13 @@ export default function ServiciosPage() {
                         {conf.label}
                       </h2>
                       <p className="text-xs text-stone-500">
-                        {items.length} servicio(s) en esta categoría
+                        {items.length} tarifa(s) fija(s) administrable(s)
                       </p>
                     </div>
                   </div>
 
                   <span className="rounded-full bg-stone-100 px-2.5 py-0.5 text-xs font-semibold text-stone-700 border border-stone-200">
-                    Categoría: {catKey}
+                    Tarifa Fija de Catálogo
                   </span>
                 </div>
 
@@ -410,15 +425,11 @@ export default function ServiciosPage() {
                           <span className="text-xs font-medium text-stone-500">
                             {servicio.tipo_precio === "por_unidad"
                               ? "Tarifa por unidad / pág:"
-                              : servicio.tipo_precio === "variable"
-                              ? "Tarifa de referencia:"
                               : "Tarifa fija:"}
                           </span>
                           <div className="text-right">
                             <span className="text-xl font-black text-stone-900 tracking-tight">
-                              {servicio.tipo_precio === "variable" && servicio.precio_actual === 0
-                                ? "Precio Abierto"
-                                : money.format(servicio.precio_actual)}
+                              {money.format(servicio.precio_actual)}
                             </span>
                           </div>
                         </div>
@@ -449,6 +460,21 @@ export default function ServiciosPage() {
               </section>
             );
           })}
+
+          {/* Variable Services Notice Card */}
+          <section className="rounded-2xl border border-stone-200 bg-stone-50/80 p-5 sm:p-6 space-y-3">
+            <div className="flex items-center gap-2">
+              <span className="flex h-7 w-7 items-center justify-center rounded-lg bg-stone-200 text-stone-800 text-xs font-black">
+                ℹ
+              </span>
+              <h3 className="text-sm font-bold text-stone-900">
+                Servicios con Tarifa Variable en Caja
+              </h3>
+            </div>
+            <p className="text-xs text-stone-600 leading-relaxed">
+              Las <strong>Fotocopias a Color</strong>, <strong>Impresiones a Color</strong>, <strong>Artículos Sublimados</strong> y <strong>Servicios Extra (Otro)</strong> no tienen una tarifa fija estricta de catálogo porque varían según la cobertura de tinta, tipo de papel o el trabajo a realizar. Sus precios se cotizan y editan directamente al momento de cobrar en la pestaña de servicios del Punto de Venta (POS).
+            </p>
+          </section>
         </div>
       )}
 

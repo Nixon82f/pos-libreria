@@ -19,7 +19,7 @@ import { Cart } from "@/components/pos/Cart";
 import { CheckoutModal } from "@/components/pos/CheckoutModal";
 import { ReceiptModal } from "@/components/pos/ReceiptModal";
 import { QuickInventoryModal } from "@/components/pos/QuickInventoryModal";
-import { RefreshCwIcon, LayersIcon, PackagePlusIcon } from "@/components/pos/Icons";
+import { RefreshCwIcon, LayersIcon, PackagePlusIcon, CalculatorIcon } from "@/components/pos/Icons";
 import { resolveProductCategory } from "@/lib/categoryStorage";
 
 function toProducto(row: {
@@ -396,6 +396,14 @@ export default function PosPage() {
             <PackagePlusIcon className="h-3.5 w-3.5" />
             <span>Agregar inventario</span>
           </button>
+
+          <Link
+            href="/cierre"
+            className="flex items-center gap-1.5 rounded-xl border border-stone-300 bg-white px-3.5 py-2 text-xs font-semibold text-stone-800 shadow-2xs hover:bg-stone-50 transition"
+          >
+            <CalculatorIcon className="h-3.5 w-3.5 text-stone-600" />
+            <span>Cierre de Caja</span>
+          </Link>
 
           <Link
             href="/servicios"

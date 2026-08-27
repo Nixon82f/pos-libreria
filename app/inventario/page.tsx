@@ -386,6 +386,12 @@ export default function InventarioPage() {
             Ir a Caja (POS)
           </Link>
           <Link
+            href="/cierre"
+            className="rounded-xl border border-stone-300 bg-white px-3.5 py-2 text-xs font-semibold text-stone-800 shadow-2xs hover:bg-stone-50 transition"
+          >
+            Cierre de Caja
+          </Link>
+          <Link
             href="/servicios"
             className="rounded-xl border border-stone-300 bg-white px-3.5 py-2 text-xs font-semibold text-stone-800 shadow-2xs hover:bg-stone-50 transition"
           >

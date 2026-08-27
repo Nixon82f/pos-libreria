@@ -315,6 +315,27 @@ export default function ServiciosPage() {
           </button>
 
           <Link
+            href="/cierre"
+            className="rounded-xl border border-stone-300 bg-white px-3.5 py-2 text-xs font-semibold text-stone-800 shadow-2xs hover:bg-stone-50 transition"
+          >
+            Cierre de Caja
+          </Link>
+
+          <Link
+            href="/inventario"
+            className="rounded-xl border border-stone-300 bg-white px-3.5 py-2 text-xs font-semibold text-stone-800 shadow-2xs hover:bg-stone-50 transition"
+          >
+            Inventario
+          </Link>
+
+          <Link
+            href="/ventas"
+            className="rounded-xl border border-stone-300 bg-white px-3.5 py-2 text-xs font-semibold text-stone-800 shadow-2xs hover:bg-stone-50 transition"
+          >
+            Historial de Ventas
+          </Link>
+
+          <Link
             href="/pos"
             className="flex items-center gap-1.5 rounded-xl bg-stone-900 px-4 py-2 text-xs font-semibold text-white shadow-sm hover:bg-stone-800 transition"
           >

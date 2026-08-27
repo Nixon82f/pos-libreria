@@ -11,6 +11,7 @@ import {
   RefreshCwIcon,
   BanknotesIcon,
   ShoppingCartIcon,
+  CalculatorIcon,
 } from "@/components/pos/Icons";
 
 const money = new Intl.NumberFormat("es-MX", {
@@ -175,6 +176,14 @@ export default function VentasPage() {
             className="rounded-xl bg-stone-900 px-3.5 py-2 text-xs font-semibold text-white shadow-2xs hover:bg-stone-800 transition"
           >
             &larr; Ir a Caja (POS)
+          </Link>
+
+          <Link
+            href="/cierre"
+            className="flex items-center gap-1.5 rounded-xl border border-stone-300 bg-white px-3.5 py-2 text-xs font-semibold text-stone-800 shadow-2xs hover:bg-stone-50 transition"
+          >
+            <CalculatorIcon className="h-3.5 w-3.5 text-stone-600" />
+            <span>Cierre de Caja</span>
           </Link>
 
           <Link

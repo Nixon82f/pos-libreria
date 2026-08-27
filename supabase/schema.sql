@@ -111,7 +111,34 @@ create index if not exists movimientos_fecha_idx on public.movimientos_inventari
 create index if not exists movimientos_producto_idx on public.movimientos_inventario (producto_id);
 
 -- -----------------------------------------------------------------------------
--- 7. RLS (Row Level Security)
+-- 7. cierres_caja (Cierre de Turno y Arqueo Diario)
+-- -----------------------------------------------------------------------------
+create table if not exists public.cierres_caja (
+  id uuid primary key default gen_random_uuid(),
+  fecha_cierre timestamptz not null default now(),
+  fecha_inicio_turno timestamptz not null default now() - interval '24 hours',
+  fecha_fin_turno timestamptz not null default now(),
+  total_ventas numeric(10, 2) not null default 0 check (total_ventas >= 0),
+  total_productos numeric(10, 2) not null default 0 check (total_productos >= 0),
+  total_servicios numeric(10, 2) not null default 0 check (total_servicios >= 0),
+  desglose_servicios jsonb not null default '{}'::jsonb,
+  total_efectivo_esperado numeric(10, 2) not null default 0 check (total_efectivo_esperado >= 0),
+  total_transferencia_esperado numeric(10, 2) not null default 0 check (total_transferencia_esperado >= 0),
+  total_tarjeta_esperado numeric(10, 2) not null default 0 check (total_tarjeta_esperado >= 0),
+  efectivo_contado numeric(10, 2) not null default 0 check (efectivo_contado >= 0),
+  desglose_efectivo jsonb default '{}'::jsonb,
+  diferencia numeric(10, 2) not null default 0,
+  estado_diferencia text not null default 'cuadrado' check (estado_diferencia in ('cuadrado', 'sobrante', 'faltante')),
+  total_transacciones integer not null default 0 check (total_transacciones >= 0),
+  cajero text not null default 'Cajero Principal',
+  notas text,
+  created_at timestamptz not null default now()
+);
+
+create index if not exists cierres_caja_fecha_idx on public.cierres_caja (fecha_cierre desc);
+
+-- -----------------------------------------------------------------------------
+-- 8. RLS (Row Level Security)
 -- -----------------------------------------------------------------------------
 alter table public.productos enable row level security;
 alter table public.servicios enable row level security;
@@ -119,6 +146,7 @@ alter table public.servicios_historial_precios enable row level security;
 alter table public.ventas enable row level security;
 alter table public.ventas_servicios_detalle enable row level security;
 alter table public.movimientos_inventario enable row level security;
+alter table public.cierres_caja enable row level security;
 
 create policy "productos_select" on public.productos for select to anon, authenticated using (true);
 create policy "productos_insert" on public.productos for insert to anon, authenticated with check (true);
@@ -146,6 +174,10 @@ create policy "ventas_servicios_delete" on public.ventas_servicios_detalle for d
 
 create policy "movimientos_select" on public.movimientos_inventario for select to anon, authenticated using (true);
 create policy "movimientos_insert" on public.movimientos_inventario for insert to anon, authenticated with check (true);
+
+create policy "cierres_select" on public.cierres_caja for select to anon, authenticated using (true);
+create policy "cierres_insert" on public.cierres_caja for insert to anon, authenticated with check (true);
+create policy "cierres_delete" on public.cierres_caja for delete to anon, authenticated using (true);
 
 -- -----------------------------------------------------------------------------
 -- 8. Seed inicial de Servicios

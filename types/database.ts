@@ -229,3 +229,51 @@ export type MovimientoInventario = {
   motivo?: string | null;
   fecha: string;
 };
+
+export type EstadoDiferenciaCierre = "cuadrado" | "sobrante" | "faltante";
+
+export type DesgloseServiciosCierre = {
+  fotocopias: number;
+  impresiones: number;
+  laminados: number;
+  encolochados: number;
+  sublimados: number;
+  otros: number;
+};
+
+export type DesgloseEfectivo = {
+  b1000?: number;
+  b500?: number;
+  b200?: number;
+  b100?: number;
+  b50?: number;
+  b20?: number;
+  m10?: number;
+  m5?: number;
+  m2?: number;
+  m1?: number;
+  m05?: number;
+};
+
+export type CierreCaja = {
+  id: string;
+  fecha_cierre: string;
+  fecha_inicio_turno: string;
+  fecha_fin_turno: string;
+  total_ventas: number;
+  total_productos: number;
+  total_servicios: number;
+  desglose_servicios: DesgloseServiciosCierre;
+  total_efectivo_esperado: number;
+  total_transferencia_esperado: number;
+  total_tarjeta_esperado: number;
+  efectivo_contado: number;
+  desglose_efectivo?: DesgloseEfectivo;
+  diferencia: number;
+  estado_diferencia: EstadoDiferenciaCierre;
+  total_transacciones: number;
+  cajero: string;
+  notas?: string | null;
+  created_at?: string;
+};
+

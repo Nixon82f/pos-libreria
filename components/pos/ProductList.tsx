@@ -50,6 +50,10 @@ export function ProductList({
   const [busquedaComida, setBusquedaComida] = useState("");
   const [filtroComida, setFiltroComida] = useState<FilterOption>("todos");
 
+  // State for Palomitas custom fast order
+  const [palomitasPrecio, setPalomitasPrecio] = useState<string>("20.00");
+  const [palomitasCantidad, setPalomitasCantidad] = useState<string>("1");
+
   // Map to quickly look up quantity in cart for products
   const cartQuantities = useMemo(() => {
     const map = new Map<string, number>();
@@ -70,73 +74,34 @@ export function ProductList({
     return productos.filter((p) => p.categoria === "comida");
   }, [productos]);
 
-  // Palomitas Services from database or defaults
-  const srvPalomitasChica = useMemo(
+  // Palomitas Service reference
+  const srvPalomitas = useMemo(
     () =>
-      servicios.find((s) => s.codigo === "palomitas_chica") || {
-        id: "mock-pal-ch",
-        codigo: "palomitas_chica",
+      servicios.find((s) => s.codigo === "palomitas_servicio") || {
+        id: "mock-palomitas",
+        codigo: "palomitas_servicio",
         categoria: "comida" as const,
-        nombre: "Palomitas Chica",
-        tipo_precio: "fijo" as const,
-        precio_actual: 15.0,
-        version_precio: 1,
-        activo: true,
-      },
-    [servicios]
-  );
-  const srvPalomitasMediana = useMemo(
-    () =>
-      servicios.find((s) => s.codigo === "palomitas_mediana") || {
-        id: "mock-pal-med",
-        codigo: "palomitas_mediana",
-        categoria: "comida" as const,
-        nombre: "Palomitas Mediana",
-        tipo_precio: "fijo" as const,
-        precio_actual: 25.0,
-        version_precio: 1,
-        activo: true,
-      },
-    [servicios]
-  );
-  const srvPalomitasGrande = useMemo(
-    () =>
-      servicios.find((s) => s.codigo === "palomitas_grande") || {
-        id: "mock-pal-gde",
-        codigo: "palomitas_grande",
-        categoria: "comida" as const,
-        nombre: "Palomitas Grande",
-        tipo_precio: "fijo" as const,
-        precio_actual: 35.0,
-        version_precio: 1,
-        activo: true,
-      },
-    [servicios]
-  );
-  const srvPalomitasJumbo = useMemo(
-    () =>
-      servicios.find((s) => s.codigo === "palomitas_jumbo") || {
-        id: "mock-pal-jumbo",
-        codigo: "palomitas_jumbo",
-        categoria: "comida" as const,
-        nombre: "Palomitas Jumbo",
-        tipo_precio: "fijo" as const,
-        precio_actual: 50.0,
+        nombre: "Palomitas de Maíz",
+        tipo_precio: "variable" as const,
+        precio_actual: 0.0,
         version_precio: 1,
         activo: true,
       },
     [servicios]
   );
 
-  const handleAddPalomitasDirect = (srv: Servicio, tamano: string) => {
+  const handleAddPalomitas = () => {
+    const precioNum = Math.max(0, parseFloat(palomitasPrecio) || 0);
+    const cantNum = Math.max(1, parseInt(palomitasCantidad, 10) || 1);
+
     onAddServiceToCart({
       tipo: "servicio",
-      servicio: srv,
-      nombre: srv.nombre,
-      descripcion_personalizada: `1 x Palomitas (${tamano})`,
-      cantidad: 1,
-      precio_unitario: srv.precio_actual,
-      opcion: tamano,
+      servicio: srvPalomitas,
+      nombre: "Palomitas de Maíz",
+      descripcion_personalizada: `${cantNum} porción(es) ($${precioNum}/u)`,
+      cantidad: cantNum,
+      precio_unitario: precioNum,
+      opcion: "Preparadas",
     });
   };
 
@@ -453,43 +418,99 @@ export function ProductList({
       <div className={mainTab === "comida" ? "flex flex-1 flex-col overflow-hidden" : "hidden"}>
         {/* Header & Search */}
         <div className="border-b border-stone-200 p-4 sm:p-5 space-y-4">
-          {/* Palomitas Card with Fast Add */}
-          <div className="rounded-2xl border border-stone-200 bg-stone-50/80 p-3.5 space-y-2.5 shadow-2xs">
-            <div className="flex items-center justify-between">
-              <div className="flex items-center gap-2">
-                <span className="text-base">🍿</span>
-                <div>
-                  <h3 className="text-xs font-bold text-stone-900">Palomitas de Maíz (Preparadas)</h3>
-                  <p className="text-[11px] text-stone-500">Tarifa fija por porción (sin límite de stock rígido)</p>
-                </div>
-              </div>
-              <span className="rounded-md bg-white border border-stone-200 px-2 py-0.5 text-[10px] font-semibold text-stone-700">
-                Tarifa de Comida
-              </span>
+          {/* Palomitas Fast Order with Custom Price & Quantity */}
+          <div className="rounded-2xl border border-stone-200 bg-stone-50/80 p-3.5 space-y-3 shadow-2xs">
+            <div className="flex items-center gap-2">
+              <span className="text-base">🍿</span>
+              <h3 className="text-xs font-bold text-stone-900">Palomitas de Maíz</h3>
             </div>
 
-            <div className="grid grid-cols-2 sm:grid-cols-4 gap-2">
-              {[
-                { srv: srvPalomitasChica, label: "Chica" },
-                { srv: srvPalomitasMediana, label: "Mediana" },
-                { srv: srvPalomitasGrande, label: "Grande" },
-                { srv: srvPalomitasJumbo, label: "Jumbo" },
-              ].map((item) => (
+            <div className="grid grid-cols-1 sm:grid-cols-[1fr_auto_auto] gap-2.5 items-end">
+              {/* Price Input & Quick Chips */}
+              <div>
+                <label className="block text-[11px] font-bold text-stone-700 mb-1">
+                  Precio ($)
+                </label>
+                <div className="flex items-center gap-2 flex-wrap sm:flex-nowrap">
+                  <input
+                    type="number"
+                    min="0"
+                    step="1"
+                    value={palomitasPrecio}
+                    onChange={(e) => setPalomitasPrecio(e.target.value)}
+                    placeholder="0.00"
+                    className="w-24 rounded-xl border border-stone-300 bg-white px-2.5 py-1.5 text-xs font-bold text-stone-900 outline-none focus:border-stone-600"
+                  />
+                  <div className="flex flex-wrap gap-1">
+                    {["10", "15", "20", "25", "30", "35"].map((val) => (
+                      <button
+                        key={val}
+                        type="button"
+                        onClick={() => setPalomitasPrecio(val)}
+                        className={`rounded-lg px-2 py-1 text-[11px] font-semibold transition cursor-pointer ${
+                          palomitasPrecio === val
+                            ? "bg-stone-900 text-white"
+                            : "bg-white text-stone-700 border border-stone-200 hover:bg-stone-100"
+                        }`}
+                      >
+                        ${val}
+                      </button>
+                    ))}
+                  </div>
+                </div>
+              </div>
+
+              {/* Quantity */}
+              <div>
+                <label className="block text-[11px] font-bold text-stone-700 mb-1">
+                  Cantidad
+                </label>
+                <div className="flex items-center gap-1.5">
+                  <input
+                    type="number"
+                    min="1"
+                    step="1"
+                    value={palomitasCantidad}
+                    onChange={(e) => setPalomitasCantidad(e.target.value)}
+                    onBlur={() => {
+                      if (!palomitasCantidad || parseInt(palomitasCantidad, 10) < 1) {
+                        setPalomitasCantidad("1");
+                      }
+                    }}
+                    className="w-16 rounded-xl border border-stone-300 bg-white px-2.5 py-1.5 text-center text-xs font-bold text-stone-900 outline-none focus:border-stone-600"
+                  />
+                  <div className="flex gap-1">
+                    {[1, 2, 3].map((n) => (
+                      <button
+                        key={n}
+                        type="button"
+                        onClick={() => setPalomitasCantidad(n.toString())}
+                        className={`rounded-lg px-2 py-1 text-[11px] font-semibold transition cursor-pointer ${
+                          palomitasCantidad === n.toString()
+                            ? "bg-stone-900 text-white"
+                            : "bg-white text-stone-700 border border-stone-200 hover:bg-stone-100"
+                        }`}
+                      >
+                        {n}
+                      </button>
+                    ))}
+                  </div>
+                </div>
+              </div>
+
+              {/* Add Button */}
+              <div>
                 <button
-                  key={item.srv.id}
                   type="button"
-                  onClick={() => handleAddPalomitasDirect(item.srv, item.label)}
-                  className="flex items-center justify-between rounded-xl border border-stone-200 bg-white p-2.5 text-left hover:border-stone-400 hover:bg-stone-50 transition cursor-pointer shadow-2xs group"
+                  onClick={handleAddPalomitas}
+                  className="w-full flex items-center justify-center gap-1.5 rounded-xl bg-stone-900 px-3.5 py-2 text-xs font-bold text-white shadow-2xs hover:bg-stone-800 active:scale-95 transition cursor-pointer"
                 >
-                  <div>
-                    <span className="block text-xs font-bold text-stone-800">{item.label}</span>
-                    <span className="block text-xs font-black text-stone-900">{money.format(item.srv.precio_actual)}</span>
-                  </div>
-                  <div className="rounded-lg bg-stone-900 group-hover:bg-stone-800 text-white p-1 transition">
-                    <PlusIcon className="h-3.5 w-3.5" />
-                  </div>
+                  <PlusIcon className="h-3.5 w-3.5" />
+                  <span>
+                    Añadir ({money.format((Math.max(0, parseFloat(palomitasPrecio) || 0)) * (Math.max(1, parseInt(palomitasCantidad, 10) || 1)))})
+                  </span>
                 </button>
-              ))}
+              </div>
             </div>
           </div>
 

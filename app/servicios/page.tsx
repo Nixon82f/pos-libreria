@@ -360,7 +360,6 @@ export default function ServiciosPage() {
               "impresiones",
               "laminados",
               "encolochados",
-              "comida",
             ] as CategoriaServicio[]
           ).map((catKey) => {
             const conf = CATEGORIAS_CONFIG[catKey];

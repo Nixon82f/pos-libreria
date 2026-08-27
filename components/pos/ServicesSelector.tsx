@@ -10,7 +10,6 @@ import {
   TagIcon,
   PlusIcon,
   MoreHorizontalIcon,
-  UtensilsIcon,
 } from "./Icons";
 
 const money = new Intl.NumberFormat("es-MX", {
@@ -29,7 +28,6 @@ type TabServicio =
   | "laminados"
   | "encolochados"
   | "sublimados"
-  | "palomitas"
   | "otros";
 
 export function ServicesSelector({
@@ -65,11 +63,7 @@ export function ServicesSelector({
   const [sublimadoPrecioUnitario, setSublimadoPrecioUnitario] = useState<string>("65.00");
   const [sublimadoCantidad, setSublimadoCantidad] = useState<string>("1");
 
-  // State 6: Palomitas (Servicio / Comida preparada)
-  const [palomitasTamano, setPalomitasTamano] = useState<"chica" | "mediana" | "grande" | "jumbo">("mediana");
-  const [palomitasCantidad, setPalomitasCantidad] = useState<string>("1");
-
-  // State 7: Otro Servicio (Extra / Personalizado)
+  // State 6: Otro Servicio (Extra / Personalizado)
   const [otroNombre, setOtroNombre] = useState<string>("Escaneo de documentos");
   const [otroPrecioUnitario, setOtroPrecioUnitario] = useState<string>("10.00");
   const [otroCantidad, setOtroCantidad] = useState<string>("1");
@@ -156,47 +150,6 @@ export function ServicesSelector({
     nombre: "Artículo Sublimado",
     tipo_precio: "variable",
     precio_actual: 0.0,
-    version_precio: 1,
-    activo: true,
-  };
-
-  const srvPalomitasChica = getServicio("palomitas_chica") || {
-    id: "mock-pal-ch",
-    codigo: "palomitas_chica",
-    categoria: "comida",
-    nombre: "Palomitas Chica",
-    tipo_precio: "fijo",
-    precio_actual: 15.0,
-    version_precio: 1,
-    activo: true,
-  };
-  const srvPalomitasMediana = getServicio("palomitas_mediana") || {
-    id: "mock-pal-med",
-    codigo: "palomitas_mediana",
-    categoria: "comida",
-    nombre: "Palomitas Mediana",
-    tipo_precio: "fijo",
-    precio_actual: 25.0,
-    version_precio: 1,
-    activo: true,
-  };
-  const srvPalomitasGrande = getServicio("palomitas_grande") || {
-    id: "mock-pal-gde",
-    codigo: "palomitas_grande",
-    categoria: "comida",
-    nombre: "Palomitas Grande",
-    tipo_precio: "fijo",
-    precio_actual: 35.0,
-    version_precio: 1,
-    activo: true,
-  };
-  const srvPalomitasJumbo = getServicio("palomitas_jumbo") || {
-    id: "mock-pal-jumbo",
-    codigo: "palomitas_jumbo",
-    categoria: "comida",
-    nombre: "Palomitas Jumbo",
-    tipo_precio: "fijo",
-    precio_actual: 50.0,
     version_precio: 1,
     activo: true,
   };
@@ -294,35 +247,6 @@ export function ServicesSelector({
     });
   };
 
-  const handleAddPalomitas = () => {
-    const srvMap = {
-      chica: srvPalomitasChica,
-      mediana: srvPalomitasMediana,
-      grande: srvPalomitasGrande,
-      jumbo: srvPalomitasJumbo,
-    };
-    const srv = srvMap[palomitasTamano];
-    const cant = Math.max(1, parseInt(palomitasCantidad, 10) || 1);
-    const nombreTamano =
-      palomitasTamano === "chica"
-        ? "Chica"
-        : palomitasTamano === "mediana"
-        ? "Mediana"
-        : palomitasTamano === "grande"
-        ? "Grande"
-        : "Jumbo";
-
-    onAddServiceToCart({
-      tipo: "servicio",
-      servicio: srv,
-      nombre: srv.nombre,
-      descripcion_personalizada: `${cant} x Palomitas (${nombreTamano})`,
-      cantidad: cant,
-      precio_unitario: srv.precio_actual,
-      opcion: nombreTamano,
-    });
-  };
-
   const handleAddOtroServicio = () => {
     const pUni = parseFloat(otroPrecioUnitario) || 0;
     const cant = Math.max(1, parseInt(otroCantidad, 10) || 1);
@@ -341,7 +265,7 @@ export function ServicesSelector({
 
   return (
     <div className="flex h-full flex-col bg-white">
-      {/* Services Category Tabs (no extra inventory button) */}
+      {/* Services Category Tabs */}
       <div className="flex items-center border-b border-stone-200 bg-stone-50/80 p-2 gap-1.5 overflow-x-auto">
         <button
           type="button"
@@ -406,19 +330,6 @@ export function ServicesSelector({
         >
           <TagIcon className="h-4 w-4" />
           <span>Sublimados</span>
-        </button>
-
-        <button
-          type="button"
-          onClick={() => setTabActiva("palomitas")}
-          className={`flex items-center gap-1.5 rounded-xl py-2 px-3 text-xs font-bold transition-all whitespace-nowrap cursor-pointer ${
-            tabActiva === "palomitas"
-              ? "bg-stone-900 text-white shadow-xs"
-              : "bg-white text-stone-700 hover:bg-stone-100 border border-stone-200/80"
-          }`}
-        >
-          <UtensilsIcon className="h-4 w-4 text-stone-700" />
-          <span>Palomitas</span>
         </button>
 
         <button
@@ -1081,119 +992,7 @@ export function ServicesSelector({
           </div>
         )}
 
-        {/* ================= 6. PALOMITAS ================= */}
-        {tabActiva === "palomitas" && (
-          <div className="max-w-xl mx-auto space-y-5">
-            <div className="flex items-center justify-between">
-              <div>
-                <h3 className="text-base font-bold text-stone-900">
-                  Palomitas de Maíz Preparadas
-                </h3>
-                <p className="text-xs text-stone-500">
-                  Venta por porción con tarifas configurables (sin límite de stock rígido).
-                </p>
-              </div>
-            </div>
-
-            {/* Size Options Grid */}
-            <div className="grid grid-cols-2 sm:grid-cols-4 gap-2.5">
-              {[
-                { key: "chica", srv: srvPalomitasChica, label: "Chica" },
-                { key: "mediana", srv: srvPalomitasMediana, label: "Mediana" },
-                { key: "grande", srv: srvPalomitasGrande, label: "Grande" },
-                { key: "jumbo", srv: srvPalomitasJumbo, label: "Jumbo" },
-              ].map((item) => (
-                <button
-                  key={item.key}
-                  type="button"
-                  onClick={() => setPalomitasTamano(item.key as typeof palomitasTamano)}
-                  className={`p-3.5 rounded-xl border text-center transition-all cursor-pointer ${
-                    palomitasTamano === item.key
-                      ? "border-stone-900 bg-stone-900 text-white shadow-xs"
-                      : "border-stone-200 bg-white text-stone-800 hover:border-stone-300"
-                  }`}
-                >
-                  <span className="block text-xs font-bold mb-1">
-                    {item.label}
-                  </span>
-                  <span className={`block text-sm font-black ${
-                    palomitasTamano === item.key ? "text-white" : "text-stone-900"
-                  }`}>
-                    {money.format(item.srv.precio_actual)}
-                  </span>
-                </button>
-              ))}
-            </div>
-
-            {/* Quantity */}
-            <div className="rounded-xl border border-stone-200 bg-stone-50/50 p-4 space-y-2">
-              <label className="block text-xs font-bold text-stone-700">
-                Cantidad de Porciones / Bolsas
-              </label>
-              <div className="flex items-center gap-3">
-                <input
-                  type="number"
-                  min="1"
-                  step="1"
-                  value={palomitasCantidad}
-                  onChange={(e) => setPalomitasCantidad(e.target.value)}
-                  onBlur={() => {
-                    if (!palomitasCantidad || parseInt(palomitasCantidad, 10) < 1) {
-                      setPalomitasCantidad("1");
-                    }
-                  }}
-                  className="w-28 rounded-xl border border-stone-300 bg-white p-2.5 text-center text-lg font-black text-stone-900 outline-none focus:border-stone-600"
-                />
-                <div className="flex gap-1.5">
-                  {[1, 2, 3, 5, 10].map((num) => (
-                    <button
-                      key={num}
-                      type="button"
-                      onClick={() => setPalomitasCantidad(num.toString())}
-                      className={`rounded-lg px-2.5 py-1.5 text-xs font-bold transition cursor-pointer ${
-                        palomitasCantidad === num.toString()
-                          ? "bg-stone-900 text-white"
-                          : "bg-white text-stone-700 border border-stone-200 hover:bg-stone-100"
-                      }`}
-                    >
-                      {num}
-                    </button>
-                  ))}
-                </div>
-              </div>
-            </div>
-
-            {/* Subtotal & Add Button */}
-            <div className="flex items-center justify-between rounded-xl bg-stone-100/70 p-4 border border-stone-200">
-              <div>
-                <span className="text-xs text-stone-500">Subtotal de palomitas:</span>
-                <div className="text-xl font-black text-stone-900">
-                  {money.format(
-                    (palomitasTamano === "chica"
-                      ? srvPalomitasChica.precio_actual
-                      : palomitasTamano === "mediana"
-                      ? srvPalomitasMediana.precio_actual
-                      : palomitasTamano === "grande"
-                      ? srvPalomitasGrande.precio_actual
-                      : srvPalomitasJumbo.precio_actual) *
-                      Math.max(1, parseInt(palomitasCantidad, 10) || 1)
-                  )}
-                </div>
-              </div>
-
-              <button
-                type="button"
-                onClick={handleAddPalomitas}
-                className="flex items-center gap-2 rounded-xl bg-stone-900 px-5 py-3 text-xs font-bold text-white shadow-xs hover:bg-stone-800 active:scale-95 transition cursor-pointer"
-              >
-                <PlusIcon className="h-4 w-4" />
-                <span>Agregar al Carrito</span>
-              </button>
-            </div>
-          </div>
-        )}
-
-        {/* ================= 7. OTRO SERVICIO ================= */}
+        {/* ================= 6. OTRO SERVICIO ================= */}
         {tabActiva === "otros" && (
           <div className="max-w-xl mx-auto space-y-5">
             <div className="flex items-center justify-between">

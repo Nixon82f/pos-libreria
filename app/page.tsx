@@ -4,7 +4,7 @@ import {
   BookOpenIcon,
   BanknotesIcon,
   RefreshCwIcon,
-  SparklesIcon,
+  LayersIcon,
 } from "@/components/pos/Icons";
 
 export default function HomePage() {
@@ -14,11 +14,11 @@ export default function HomePage() {
         <span className="rounded-full bg-stone-100 px-3 py-1 text-xs font-semibold text-stone-700">
           Sistema POS & Inventario
         </span>
-        <h1 className="mt-3 text-3xl font-black tracking-tight text-stone-900 sm:text-4xl">
-          Libreria San Rafael
+        <h1 className="mt-4 text-3xl font-extrabold tracking-tight text-stone-900 sm:text-4xl">
+          Librería San Rafael
         </h1>
-        <p className="mt-2 text-sm text-stone-600 max-w-md mx-auto">
-          Punto de venta, control de inventario y auditoría para útiles, papelería y libros.
+        <p className="mt-2 text-sm text-stone-600">
+          Control de ventas en mostrador, inventario físico en tiempo real y servicios independientes.
         </p>
       </div>
 
@@ -46,23 +46,20 @@ export default function HomePage() {
         {/* Servicios & Tarifas */}
         <Link
           href="/servicios"
-          className="group flex flex-col justify-between rounded-2xl border border-indigo-200 bg-indigo-50/40 p-6 shadow-sm transition hover:border-indigo-400 hover:shadow-md"
+          className="group flex flex-col justify-between rounded-2xl border border-stone-200 bg-white p-6 shadow-sm transition hover:border-stone-400 hover:shadow-md"
         >
           <div>
-            <div className="flex h-12 w-12 items-center justify-center rounded-xl bg-indigo-600 text-white mb-4 transition group-hover:scale-105 shadow-xs">
-              <SparklesIcon className="h-6 w-6" />
+            <div className="flex h-12 w-12 items-center justify-center rounded-xl bg-stone-100 text-stone-800 mb-4 transition group-hover:scale-105">
+              <LayersIcon className="h-6 w-6" />
             </div>
             <div className="flex items-center gap-2">
               <h2 className="text-lg font-bold text-stone-900">Servicios & Tarifas</h2>
-              <span className="rounded-full bg-indigo-100 px-2 py-0.5 text-[10px] font-bold text-indigo-800">
-                Nuevo
-              </span>
             </div>
-            <p className="mt-1 text-xs text-stone-600">
+            <p className="mt-1 text-xs text-stone-500">
               Configuración de precios de fotocopias, impresiones, laminados, encolochados y sublimados con versionado histórico.
             </p>
           </div>
-          <div className="mt-6 flex items-center text-xs font-semibold text-indigo-800">
+          <div className="mt-6 flex items-center text-xs font-semibold text-stone-900">
             <span>Administrar tarifas</span>
             <span className="ml-1 transition group-hover:translate-x-1">&rarr;</span>
           </div>

@@ -9,7 +9,6 @@ import {
   PrinterIcon,
   LayersIcon,
   BookOpenIcon,
-  SparklesIcon,
   PencilIcon,
   ClockIcon,
   RefreshCwIcon,
@@ -25,32 +24,27 @@ const money = new Intl.NumberFormat("es-MX", {
 
 const CATEGORIAS_CONFIG: Record<
   CategoriaServicio,
-  { label: string; icon: typeof CopyIcon; color: string }
+  { label: string; icon: typeof CopyIcon }
 > = {
   fotocopias: {
     label: "Fotocopias",
     icon: CopyIcon,
-    color: "bg-blue-50 text-blue-700 border-blue-200",
   },
   impresiones: {
     label: "Impresiones",
     icon: PrinterIcon,
-    color: "bg-purple-50 text-purple-700 border-purple-200",
   },
   laminados: {
     label: "Laminados",
     icon: LayersIcon,
-    color: "bg-emerald-50 text-emerald-700 border-emerald-200",
   },
   encolochados: {
     label: "Encolochados",
     icon: BookOpenIcon,
-    color: "bg-amber-50 text-amber-800 border-amber-200",
   },
   sublimados: {
     label: "Artículos Sublimados",
-    icon: SparklesIcon,
-    color: "bg-rose-50 text-rose-700 border-rose-200",
+    icon: TagIcon,
   },
 };
 
@@ -108,19 +102,15 @@ export default function ServiciosPage() {
   }, [supabase]);
 
   useEffect(() => {
-    let activo = true;
-    async function iniciar() {
+    async function init() {
       setCargando(true);
       await cargarServicios();
-      if (activo) setCargando(false);
+      setCargando(false);
     }
-    void iniciar();
-    return () => {
-      activo = false;
-    };
+    init();
   }, [cargarServicios]);
 
-  // Open Edit Price Modal
+  // Open Edit Modal
   const handleOpenEditModal = (servicio: Servicio) => {
     setServicioEnEdicion(servicio);
     setNuevoPrecio(servicio.precio_actual.toString());
@@ -128,14 +118,14 @@ export default function ServiciosPage() {
     setErrorEdicion(null);
   };
 
-  // Submit Price Update
+  // Submit Price Update via RPC or Direct Supabase Mutation
   const handleGuardarNuevoPrecio = async (e: React.FormEvent) => {
     e.preventDefault();
     if (!servicioEnEdicion) return;
 
-    const precioNum = parseFloat(nuevoPrecio);
-    if (isNaN(precioNum) || precioNum < 0) {
-      setErrorEdicion("Por favor ingresa un precio válido (0 o mayor).");
+    const precioNumerico = parseFloat(nuevoPrecio);
+    if (isNaN(precioNumerico) || precioNumerico < 0) {
+      setErrorEdicion("Ingresa un precio válido mayor o igual a 0.");
       return;
     }
 
@@ -143,40 +133,44 @@ export default function ServiciosPage() {
     setErrorEdicion(null);
 
     try {
-      // 1. Try calling the RPC function
-      const { data, error: rpcError } = await supabase.rpc(
+      // 1. Try calling the PostgreSQL RPC function
+      const { data: rpcData, error: rpcError } = await supabase.rpc(
         "actualizar_precio_servicio",
         {
           p_servicio_id: servicioEnEdicion.id,
-          p_nuevo_precio: precioNum,
-          p_motivo: motivoCambio.trim() || "Ajuste de tarifa",
+          p_nuevo_precio: precioNumerico,
+          p_motivo: motivoCambio.trim() || undefined,
         }
       );
 
       if (rpcError) {
-        // Fallback: direct update if RPC fails
+        // Fallback: If RPC not created in DB yet, update directly
+        const ahora = new Date().toISOString();
         const nuevaVersion = servicioEnEdicion.version_precio + 1;
 
+        // Close current history record
         await supabase
           .from("servicios_historial_precios")
-          .update({ fecha_fin: new Date().toISOString() })
+          .update({ fecha_fin: ahora })
           .eq("servicio_id", servicioEnEdicion.id)
           .is("fecha_fin", null);
 
+        // Insert new history version
         await supabase.from("servicios_historial_precios").insert({
           servicio_id: servicioEnEdicion.id,
           version: nuevaVersion,
-          precio: precioNum,
-          fecha_inicio: new Date().toISOString(),
+          precio: precioNumerico,
+          fecha_inicio: ahora,
           motivo_cambio: motivoCambio.trim() || "Ajuste de tarifa",
         });
 
+        // Update active service row
         const { error: updateError } = await supabase
           .from("servicios")
           .update({
-            precio_actual: precioNum,
+            precio_actual: precioNumerico,
             version_precio: nuevaVersion,
-            updated_at: new Date().toISOString(),
+            updated_at: ahora,
           })
           .eq("id", servicioEnEdicion.id);
 
@@ -186,15 +180,19 @@ export default function ServiciosPage() {
       }
 
       setMensajeExito(
-        `Tarifa de "${servicioEnEdicion.nombre}" actualizada a ${money.format(precioNum)}.`
+        `Tarifa de "${servicioEnEdicion.nombre}" actualizada a ${money.format(
+          precioNumerico
+        )} exitosamente.`
       );
       setServicioEnEdicion(null);
       await cargarServicios();
 
-      // Clear success notification after 4s
-      setTimeout(() => setMensajeExito(null), 4000);
+      setTimeout(() => {
+        setMensajeExito(null);
+      }, 4000);
     } catch (err: unknown) {
-      const msg = err instanceof Error ? err.message : "Error al actualizar la tarifa.";
+      const msg =
+        err instanceof Error ? err.message : "Error al actualizar la tarifa.";
       setErrorEdicion(msg);
     } finally {
       setGuardandoPrecio(false);
@@ -271,7 +269,7 @@ export default function ServiciosPage() {
             <h1 className="text-2xl font-bold tracking-tight text-stone-900 sm:text-3xl">
               Catálogo & Tarifas de Servicios
             </h1>
-            <span className="inline-flex items-center rounded-full bg-indigo-100 px-2.5 py-0.5 text-xs font-semibold text-indigo-800">
+            <span className="inline-flex items-center rounded-full bg-stone-100 px-2.5 py-0.5 text-xs font-semibold text-stone-800">
               {servicios.length} Servicios Configurados
             </span>
           </div>
@@ -329,7 +327,7 @@ export default function ServiciosPage() {
       {/* Categories Grid */}
       {cargando ? (
         <div className="flex h-64 flex-col items-center justify-center gap-3 text-stone-500">
-          <div className="h-8 w-8 animate-spin rounded-full border-2 border-stone-300 border-t-indigo-600" />
+          <div className="h-8 w-8 animate-spin rounded-full border-2 border-stone-300 border-t-stone-900" />
           <p className="text-sm">Cargando tarifas y servicios...</p>
         </div>
       ) : (
@@ -356,7 +354,7 @@ export default function ServiciosPage() {
                 <div className="flex flex-wrap items-center justify-between gap-2 border-b border-stone-100 pb-3">
                   <div className="flex items-center gap-2.5">
                     <div className="flex h-9 w-9 items-center justify-center rounded-xl bg-stone-100 text-stone-800">
-                      <Icon className="h-5 w-5 text-indigo-600" />
+                      <Icon className="h-5 w-5 text-stone-700" />
                     </div>
                     <div>
                       <h2 className="text-base font-bold text-stone-900 capitalize">
@@ -368,9 +366,7 @@ export default function ServiciosPage() {
                     </div>
                   </div>
 
-                  <span
-                    className={`rounded-full px-2.5 py-0.5 text-xs font-semibold border ${conf.color}`}
-                  >
+                  <span className="rounded-full bg-stone-100 px-2.5 py-0.5 text-xs font-semibold text-stone-700 border border-stone-200">
                     Categoría: {catKey}
                   </span>
                 </div>
@@ -390,7 +386,7 @@ export default function ServiciosPage() {
                             {servicio.codigo}
                           </span>
 
-                          <span className="rounded-full bg-indigo-50 px-2 py-0.5 text-[11px] font-bold text-indigo-700 border border-indigo-200/80">
+                          <span className="rounded-full bg-stone-200/80 px-2 py-0.5 text-[11px] font-bold text-stone-800 border border-stone-300">
                             Versión {servicio.version_precio}
                           </span>
                         </div>
@@ -465,7 +461,7 @@ export default function ServiciosPage() {
           <div className="relative z-10 w-full max-w-md rounded-2xl border border-stone-200 bg-white p-6 shadow-2xl transition-all">
             <div className="flex items-center justify-between border-b border-stone-100 pb-3">
               <div className="flex items-center gap-2">
-                <div className="flex h-8 w-8 items-center justify-center rounded-lg bg-indigo-100 text-indigo-700">
+                <div className="flex h-8 w-8 items-center justify-center rounded-lg bg-stone-100 text-stone-900">
                   <PencilIcon className="h-4 w-4" />
                 </div>
                 <div>
@@ -526,7 +522,7 @@ export default function ServiciosPage() {
                     value={nuevoPrecio}
                     onChange={(e) => setNuevoPrecio(e.target.value)}
                     placeholder="0.00"
-                    className="w-full rounded-xl border border-stone-300 bg-white py-2.5 pl-7 pr-3 text-base font-bold text-stone-900 outline-none focus:border-indigo-600 focus:ring-2 focus:ring-indigo-100"
+                    className="w-full rounded-xl border border-stone-300 bg-white py-2.5 pl-7 pr-3 text-base font-bold text-stone-900 outline-none focus:border-stone-600 focus:ring-1 focus:ring-stone-600"
                     autoFocus
                   />
                 </div>
@@ -545,7 +541,7 @@ export default function ServiciosPage() {
                   value={motivoCambio}
                   onChange={(e) => setMotivoCambio(e.target.value)}
                   placeholder="Ej. Ajuste de costos de insumos, Tarifa escolar 2026..."
-                  className="w-full rounded-xl border border-stone-300 bg-white px-3 py-2 text-xs text-stone-900 outline-none focus:border-indigo-600 focus:ring-2 focus:ring-indigo-100"
+                  className="w-full rounded-xl border border-stone-300 bg-white px-3 py-2 text-xs text-stone-900 outline-none focus:border-stone-600 focus:ring-1 focus:ring-stone-600"
                 />
               </div>
 
@@ -563,7 +559,7 @@ export default function ServiciosPage() {
                 <button
                   type="submit"
                   disabled={guardandoPrecio}
-                  className="flex-1 flex items-center justify-center gap-2 rounded-xl bg-indigo-600 py-2.5 text-xs font-bold text-white shadow-sm hover:bg-indigo-700 transition disabled:opacity-50 cursor-pointer"
+                  className="flex-1 flex items-center justify-center gap-2 rounded-xl bg-stone-900 py-2.5 text-xs font-bold text-white shadow-sm hover:bg-stone-800 transition disabled:opacity-50 cursor-pointer"
                 >
                   {guardandoPrecio ? (
                     <>
@@ -642,7 +638,7 @@ export default function ServiciosPage() {
                       key={item.id}
                       className={`rounded-xl border p-4 transition ${
                         esVigente
-                          ? "border-indigo-200 bg-indigo-50/50"
+                          ? "border-stone-900 bg-stone-50 ring-1 ring-stone-900/10"
                           : "border-stone-200 bg-stone-50/50"
                       }`}
                     >
@@ -651,7 +647,7 @@ export default function ServiciosPage() {
                           <span
                             className={`rounded-md px-2 py-0.5 text-xs font-bold ${
                               esVigente
-                                ? "bg-indigo-600 text-white"
+                                ? "bg-stone-900 text-white"
                                 : "bg-stone-200 text-stone-700"
                             }`}
                           >

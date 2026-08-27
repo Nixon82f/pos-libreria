@@ -7,7 +7,7 @@ import {
   PrinterIcon,
   BookOpenIcon,
   LayersIcon,
-  SparklesIcon,
+  TagIcon,
   PlusIcon,
 } from "./Icons";
 
@@ -199,7 +199,7 @@ export function ServicesSelector({
       tipo: "servicio",
       servicio: srv,
       nombre: srv.nombre,
-      descripcion_personalizada: `${cant} mica(s) ${tamano}`,
+      descripcion_personalizada: `${cant} unidad(es) - Formato ${tamano}`,
       cantidad: cant,
       precio_unitario: srv.precio_actual,
       opcion: tamano,
@@ -207,164 +207,159 @@ export function ServicesSelector({
   };
 
   const handleAddSublimado = () => {
-    const desc = sublimadoDesc.trim() || "Personalización personalizada";
-    const precio = Math.max(0, parseFloat(sublimadoPrecioUnitario) || 0);
+    const pUni = parseFloat(sublimadoPrecioUnitario) || 0;
     const cant = Math.max(1, sublimadoCantidad || 1);
+    const desc = sublimadoDesc.trim() || "Artículo personalizado";
 
     onAddServiceToCart({
       tipo: "servicio",
       servicio: srvSublimado,
       nombre: "Artículo Sublimado",
-      descripcion_personalizada: desc,
+      descripcion_personalizada: `${desc} (x${cant})`,
       cantidad: cant,
-      precio_unitario: precio,
+      precio_unitario: pUni,
     });
 
-    // Reset description for next sublimation
     setSublimadoDesc("");
   };
 
   return (
-    <div className="flex h-full flex-col">
-      {/* Category selector pills */}
-      <div className="border-b border-stone-200 bg-stone-50/70 p-3">
-        <div className="grid grid-cols-2 sm:grid-cols-5 gap-1.5 text-xs font-semibold">
-          <button
-            type="button"
-            onClick={() => setTabActiva("fotocopias")}
-            className={`flex items-center justify-center gap-1.5 rounded-xl py-2 px-3 transition-all ${
-              tabActiva === "fotocopias"
-                ? "bg-indigo-600 text-white shadow-sm"
-                : "bg-white text-stone-700 hover:bg-stone-100 border border-stone-200"
-            }`}
-          >
-            <CopyIcon className="h-4 w-4" />
-            <span>Fotocopias</span>
-          </button>
+    <div className="flex h-full flex-col bg-white">
+      {/* Services Category Tabs */}
+      <div className="flex border-b border-stone-200 bg-stone-50/80 p-2 gap-1.5 overflow-x-auto">
+        <button
+          type="button"
+          onClick={() => setTabActiva("fotocopias")}
+          className={`flex items-center gap-2 rounded-xl py-2 px-3.5 text-xs font-bold transition-all whitespace-nowrap ${
+            tabActiva === "fotocopias"
+              ? "bg-stone-900 text-white shadow-xs"
+              : "bg-white text-stone-700 hover:bg-stone-100 border border-stone-200/80"
+          }`}
+        >
+          <CopyIcon className="h-4 w-4" />
+          <span>Fotocopias</span>
+        </button>
 
-          <button
-            type="button"
-            onClick={() => setTabActiva("impresiones")}
-            className={`flex items-center justify-center gap-1.5 rounded-xl py-2 px-3 transition-all ${
-              tabActiva === "impresiones"
-                ? "bg-indigo-600 text-white shadow-sm"
-                : "bg-white text-stone-700 hover:bg-stone-100 border border-stone-200"
-            }`}
-          >
-            <PrinterIcon className="h-4 w-4" />
-            <span>Impresiones</span>
-          </button>
+        <button
+          type="button"
+          onClick={() => setTabActiva("impresiones")}
+          className={`flex items-center gap-2 rounded-xl py-2 px-3.5 text-xs font-bold transition-all whitespace-nowrap ${
+            tabActiva === "impresiones"
+              ? "bg-stone-900 text-white shadow-xs"
+              : "bg-white text-stone-700 hover:bg-stone-100 border border-stone-200/80"
+          }`}
+        >
+          <PrinterIcon className="h-4 w-4" />
+          <span>Impresiones</span>
+        </button>
 
-          <button
-            type="button"
-            onClick={() => setTabActiva("laminados")}
-            className={`flex items-center justify-center gap-1.5 rounded-xl py-2 px-3 transition-all ${
-              tabActiva === "laminados"
-                ? "bg-indigo-600 text-white shadow-sm"
-                : "bg-white text-stone-700 hover:bg-stone-100 border border-stone-200"
-            }`}
-          >
-            <LayersIcon className="h-4 w-4" />
-            <span>Laminados</span>
-          </button>
+        <button
+          type="button"
+          onClick={() => setTabActiva("laminados")}
+          className={`flex items-center gap-2 rounded-xl py-2 px-3.5 text-xs font-bold transition-all whitespace-nowrap ${
+            tabActiva === "laminados"
+              ? "bg-stone-900 text-white shadow-xs"
+              : "bg-white text-stone-700 hover:bg-stone-100 border border-stone-200/80"
+          }`}
+        >
+          <LayersIcon className="h-4 w-4" />
+          <span>Laminados</span>
+        </button>
 
-          <button
-            type="button"
-            onClick={() => setTabActiva("encolochados")}
-            className={`flex items-center justify-center gap-1.5 rounded-xl py-2 px-3 transition-all ${
-              tabActiva === "encolochados"
-                ? "bg-indigo-600 text-white shadow-sm"
-                : "bg-white text-stone-700 hover:bg-stone-100 border border-stone-200"
-            }`}
-          >
-            <BookOpenIcon className="h-4 w-4" />
-            <span>Encolochado</span>
-          </button>
+        <button
+          type="button"
+          onClick={() => setTabActiva("encolochados")}
+          className={`flex items-center gap-2 rounded-xl py-2 px-3.5 text-xs font-bold transition-all whitespace-nowrap ${
+            tabActiva === "encolochados"
+              ? "bg-stone-900 text-white shadow-xs"
+              : "bg-white text-stone-700 hover:bg-stone-100 border border-stone-200/80"
+          }`}
+        >
+          <BookOpenIcon className="h-4 w-4" />
+          <span>Encolochados</span>
+        </button>
 
-          <button
-            type="button"
-            onClick={() => setTabActiva("sublimados")}
-            className={`flex items-center justify-center gap-1.5 rounded-xl py-2 px-3 transition-all ${
-              tabActiva === "sublimados"
-                ? "bg-indigo-600 text-white shadow-sm"
-                : "bg-white text-stone-700 hover:bg-stone-100 border border-stone-200"
-            }`}
-          >
-            <SparklesIcon className="h-4 w-4" />
-            <span>Sublimados</span>
-          </button>
-        </div>
+        <button
+          type="button"
+          onClick={() => setTabActiva("sublimados")}
+          className={`flex items-center gap-2 rounded-xl py-2 px-3.5 text-xs font-bold transition-all whitespace-nowrap ${
+            tabActiva === "sublimados"
+              ? "bg-stone-900 text-white shadow-xs"
+              : "bg-white text-stone-700 hover:bg-stone-100 border border-stone-200/80"
+          }`}
+        >
+          <TagIcon className="h-4 w-4" />
+          <span>Sublimados</span>
+        </button>
       </div>
 
-      {/* Active Service Form Container */}
-      <div className="flex-1 overflow-y-auto p-4 sm:p-6">
+      {/* Main Tab Body */}
+      <div className="flex-1 overflow-y-auto p-5 space-y-6">
         {/* ================= 1. FOTOCOPIAS ================= */}
         {tabActiva === "fotocopias" && (
-          <div className="max-w-xl mx-auto space-y-6">
-            <div className="flex items-center justify-between border-b border-stone-100 pb-3">
+          <div className="max-w-xl mx-auto space-y-5">
+            <div className="flex items-center justify-between">
               <div>
-                <h3 className="text-base font-bold text-stone-900 flex items-center gap-2">
-                  <CopyIcon className="h-5 w-5 text-indigo-600" />
+                <h3 className="text-base font-bold text-stone-900">
                   Servicio de Fotocopiado
                 </h3>
                 <p className="text-xs text-stone-500">
-                  Selecciona la modalidad de copiado e ingresa el número de páginas.
+                  Calculado automáticamente según cantidad de páginas.
                 </p>
               </div>
-              <span className="rounded-full bg-indigo-50 px-2.5 py-1 text-xs font-semibold text-indigo-700 border border-indigo-200">
-                Tarifa automática
-              </span>
             </div>
 
-            {/* Modalidad Selector */}
+            {/* Modalidad Selection */}
             <div className="grid grid-cols-2 gap-3">
               <button
                 type="button"
                 onClick={() => setFotocopiaModalidad("bn")}
-                className={`flex flex-col items-start p-4 rounded-xl border transition-all text-left ${
+                className={`p-4 rounded-xl border text-left transition-all ${
                   fotocopiaModalidad === "bn"
-                    ? "border-indigo-600 bg-indigo-50/60 ring-2 ring-indigo-600/20"
+                    ? "border-stone-900 bg-stone-50 ring-1 ring-stone-900/10"
                     : "border-stone-200 bg-white hover:border-stone-300"
                 }`}
               >
-                <span className="text-xs font-bold uppercase tracking-wider text-stone-500">
-                  Modalidad
-                </span>
-                <span className="text-sm font-bold text-stone-900 mt-1">
-                  Blanco y Negro (B&N)
-                </span>
-                <span className="text-lg font-extrabold text-indigo-700 mt-2">
-                  {money.format(srvFotocopiaBn.precio_actual)}{" "}
-                  <span className="text-xs font-normal text-stone-500">/ pág</span>
-                </span>
+                <div className="flex items-center justify-between mb-1">
+                  <span className="text-xs font-bold uppercase text-stone-600">
+                    Blanco y Negro
+                  </span>
+                  <span className="font-extrabold text-sm text-stone-900">
+                    {money.format(srvFotocopiaBn.precio_actual)} / pág
+                  </span>
+                </div>
+                <p className="text-xs text-stone-500">
+                  Texto simple, copias estándar.
+                </p>
               </button>
 
               <button
                 type="button"
                 onClick={() => setFotocopiaModalidad("color")}
-                className={`flex flex-col items-start p-4 rounded-xl border transition-all text-left ${
+                className={`p-4 rounded-xl border text-left transition-all ${
                   fotocopiaModalidad === "color"
-                    ? "border-indigo-600 bg-indigo-50/60 ring-2 ring-indigo-600/20"
+                    ? "border-stone-900 bg-stone-50 ring-1 ring-stone-900/10"
                     : "border-stone-200 bg-white hover:border-stone-300"
                 }`}
               >
-                <span className="text-xs font-bold uppercase tracking-wider text-stone-500">
-                  Modalidad
-                </span>
-                <span className="text-sm font-bold text-stone-900 mt-1">
-                  A Color
-                </span>
-                <span className="text-lg font-extrabold text-indigo-700 mt-2">
-                  {money.format(srvFotocopiaColor.precio_actual)}{" "}
-                  <span className="text-xs font-normal text-stone-500">/ pág</span>
-                </span>
+                <div className="flex items-center justify-between mb-1">
+                  <span className="text-xs font-bold uppercase text-stone-700">
+                    A Todo Color
+                  </span>
+                  <span className="font-extrabold text-sm text-stone-900">
+                    {money.format(srvFotocopiaColor.precio_actual)} / pág
+                  </span>
+                </div>
+                <p className="text-xs text-stone-500">
+                  Gráficos, imágenes y portadas.
+                </p>
               </button>
             </div>
 
-            {/* Pages Input & Quick Presets */}
+            {/* Pages Input & Quick Steppers */}
             <div className="rounded-xl border border-stone-200 bg-stone-50/50 p-4 space-y-3">
               <label className="block text-xs font-bold text-stone-700">
-                Número de Páginas
+                Número de Páginas / Copias
               </label>
               <div className="flex items-center gap-3">
                 <input
@@ -373,54 +368,48 @@ export function ServicesSelector({
                   step="1"
                   value={fotocopiaPaginas}
                   onChange={(e) =>
-                    setFotocopiaPaginas(Math.max(1, parseInt(e.target.value, 10) || 1))
+                    setFotocopiaPaginas(Math.max(1, parseInt(e.target.value) || 1))
                   }
-                  className="w-32 rounded-xl border border-stone-300 bg-white px-3 py-2 text-center text-lg font-bold text-stone-900 outline-none focus:border-indigo-600 focus:ring-2 focus:ring-indigo-100"
+                  className="w-28 rounded-xl border border-stone-300 bg-white p-2.5 text-center text-lg font-black text-stone-900 outline-none focus:border-stone-600"
                 />
+
+                {/* Quick Add Presets */}
                 <div className="flex flex-wrap gap-1.5">
-                  {[1, 5, 10, 20, 50, 100].map((n) => (
+                  {[1, 5, 10, 20, 50, 100].map((num) => (
                     <button
-                      key={n}
+                      key={num}
                       type="button"
-                      onClick={() => setFotocopiaPaginas(n)}
-                      className={`rounded-lg border px-2.5 py-1 text-xs font-semibold transition ${
-                        fotocopiaPaginas === n
-                          ? "border-stone-900 bg-stone-900 text-white"
-                          : "border-stone-200 bg-white text-stone-700 hover:bg-stone-100"
+                      onClick={() => setFotocopiaPaginas(num)}
+                      className={`rounded-lg px-2.5 py-1.5 text-xs font-bold transition ${
+                        fotocopiaPaginas === num
+                          ? "bg-stone-900 text-white"
+                          : "bg-white text-stone-700 border border-stone-200 hover:bg-stone-100"
                       }`}
                     >
-                      {n}
+                      {num}
                     </button>
                   ))}
                 </div>
               </div>
             </div>
 
-            {/* Total and Action */}
-            <div className="flex items-center justify-between rounded-xl bg-indigo-50/80 border border-indigo-100 p-4">
+            {/* Subtotal & Add Button */}
+            <div className="flex items-center justify-between rounded-xl bg-stone-100/70 p-4 border border-stone-200">
               <div>
-                <span className="text-xs font-medium text-indigo-900">Total a cobrar:</span>
-                <div className="text-2xl font-black text-indigo-950 tracking-tight">
+                <span className="text-xs text-stone-500">Subtotal del servicio:</span>
+                <div className="text-xl font-black text-stone-900">
                   {money.format(
                     (fotocopiaModalidad === "bn"
                       ? srvFotocopiaBn.precio_actual
                       : srvFotocopiaColor.precio_actual) * (fotocopiaPaginas || 1)
                   )}
                 </div>
-                <span className="text-[11px] text-indigo-700">
-                  {fotocopiaPaginas} pág(s) ×{" "}
-                  {money.format(
-                    fotocopiaModalidad === "bn"
-                      ? srvFotocopiaBn.precio_actual
-                      : srvFotocopiaColor.precio_actual
-                  )}
-                </span>
               </div>
 
               <button
                 type="button"
                 onClick={handleAddFotocopia}
-                className="flex items-center gap-2 rounded-xl bg-indigo-600 px-5 py-3 text-sm font-bold text-white shadow-md hover:bg-indigo-700 active:scale-95 transition cursor-pointer"
+                className="flex items-center gap-2 rounded-xl bg-stone-900 px-5 py-3 text-xs font-bold text-white shadow-xs hover:bg-stone-800 active:scale-95 transition"
               >
                 <PlusIcon className="h-4 w-4" />
                 <span>Agregar al Carrito</span>
@@ -431,71 +420,69 @@ export function ServicesSelector({
 
         {/* ================= 2. IMPRESIONES ================= */}
         {tabActiva === "impresiones" && (
-          <div className="max-w-xl mx-auto space-y-6">
-            <div className="flex items-center justify-between border-b border-stone-100 pb-3">
+          <div className="max-w-xl mx-auto space-y-5">
+            <div className="flex items-center justify-between">
               <div>
-                <h3 className="text-base font-bold text-stone-900 flex items-center gap-2">
-                  <PrinterIcon className="h-5 w-5 text-indigo-600" />
-                  Servicio de Impresiones
+                <h3 className="text-base font-bold text-stone-900">
+                  Servicio de Impresión Digital
                 </h3>
                 <p className="text-xs text-stone-500">
-                  Impresión digital de documentos desde USB, correo o teléfono.
+                  Impresión directa desde USB, correo o teléfono.
                 </p>
               </div>
-              <span className="rounded-full bg-indigo-50 px-2.5 py-1 text-xs font-semibold text-indigo-700 border border-indigo-200">
-                Tarifa automática
-              </span>
             </div>
 
-            {/* Modalidad Selector */}
+            {/* Modalidad Selection */}
             <div className="grid grid-cols-2 gap-3">
               <button
                 type="button"
                 onClick={() => setImpresionModalidad("bn")}
-                className={`flex flex-col items-start p-4 rounded-xl border transition-all text-left ${
+                className={`p-4 rounded-xl border text-left transition-all ${
                   impresionModalidad === "bn"
-                    ? "border-indigo-600 bg-indigo-50/60 ring-2 ring-indigo-600/20"
+                    ? "border-stone-900 bg-stone-50 ring-1 ring-stone-900/10"
                     : "border-stone-200 bg-white hover:border-stone-300"
                 }`}
               >
-                <span className="text-xs font-bold uppercase tracking-wider text-stone-500">
-                  Tipo de Impresión
-                </span>
-                <span className="text-sm font-bold text-stone-900 mt-1">
-                  Blanco y Negro (B&N)
-                </span>
-                <span className="text-lg font-extrabold text-indigo-700 mt-2">
-                  {money.format(srvImpresionBn.precio_actual)}{" "}
-                  <span className="text-xs font-normal text-stone-500">/ pág</span>
-                </span>
+                <div className="flex items-center justify-between mb-1">
+                  <span className="text-xs font-bold uppercase text-stone-600">
+                    Blanco y Negro
+                  </span>
+                  <span className="font-extrabold text-sm text-stone-900">
+                    {money.format(srvImpresionBn.precio_actual)} / pág
+                  </span>
+                </div>
+                <p className="text-xs text-stone-500">
+                  Documentos, tareas, guías.
+                </p>
               </button>
 
               <button
                 type="button"
                 onClick={() => setImpresionModalidad("color")}
-                className={`flex flex-col items-start p-4 rounded-xl border transition-all text-left ${
+                className={`p-4 rounded-xl border text-left transition-all ${
                   impresionModalidad === "color"
-                    ? "border-indigo-600 bg-indigo-50/60 ring-2 ring-indigo-600/20"
+                    ? "border-stone-900 bg-stone-50 ring-1 ring-stone-900/10"
                     : "border-stone-200 bg-white hover:border-stone-300"
                 }`}
               >
-                <span className="text-xs font-bold uppercase tracking-wider text-stone-500">
-                  Tipo de Impresión
-                </span>
-                <span className="text-sm font-bold text-stone-900 mt-1">
-                  A Color / Imágenes
-                </span>
-                <span className="text-lg font-extrabold text-indigo-700 mt-2">
-                  {money.format(srvImpresionColor.precio_actual)}{" "}
-                  <span className="text-xs font-normal text-stone-500">/ pág</span>
-                </span>
+                <div className="flex items-center justify-between mb-1">
+                  <span className="text-xs font-bold uppercase text-stone-700">
+                    Color HD
+                  </span>
+                  <span className="font-extrabold text-sm text-stone-900">
+                    {money.format(srvImpresionColor.precio_actual)} / pág
+                  </span>
+                </div>
+                <p className="text-xs text-stone-500">
+                  Imágenes, diapositivas y proyectos.
+                </p>
               </button>
             </div>
 
-            {/* Pages Input & Quick Presets */}
+            {/* Pages Input & Quick Steppers */}
             <div className="rounded-xl border border-stone-200 bg-stone-50/50 p-4 space-y-3">
               <label className="block text-xs font-bold text-stone-700">
-                Número de Páginas a Imprimir
+                Cantidad de Páginas Impresas
               </label>
               <div className="flex items-center gap-3">
                 <input
@@ -504,54 +491,48 @@ export function ServicesSelector({
                   step="1"
                   value={impresionPaginas}
                   onChange={(e) =>
-                    setImpresionPaginas(Math.max(1, parseInt(e.target.value, 10) || 1))
+                    setImpresionPaginas(Math.max(1, parseInt(e.target.value) || 1))
                   }
-                  className="w-32 rounded-xl border border-stone-300 bg-white px-3 py-2 text-center text-lg font-bold text-stone-900 outline-none focus:border-indigo-600 focus:ring-2 focus:ring-indigo-100"
+                  className="w-28 rounded-xl border border-stone-300 bg-white p-2.5 text-center text-lg font-black text-stone-900 outline-none focus:border-stone-600"
                 />
+
+                {/* Quick Add Presets */}
                 <div className="flex flex-wrap gap-1.5">
-                  {[1, 3, 5, 10, 25, 50].map((n) => (
+                  {[1, 5, 10, 20, 50, 100].map((num) => (
                     <button
-                      key={n}
+                      key={num}
                       type="button"
-                      onClick={() => setImpresionPaginas(n)}
-                      className={`rounded-lg border px-2.5 py-1 text-xs font-semibold transition ${
-                        impresionPaginas === n
-                          ? "border-stone-900 bg-stone-900 text-white"
-                          : "border-stone-200 bg-white text-stone-700 hover:bg-stone-100"
+                      onClick={() => setImpresionPaginas(num)}
+                      className={`rounded-lg px-2.5 py-1.5 text-xs font-bold transition ${
+                        impresionPaginas === num
+                          ? "bg-stone-900 text-white"
+                          : "bg-white text-stone-700 border border-stone-200 hover:bg-stone-100"
                       }`}
                     >
-                      {n}
+                      {num}
                     </button>
                   ))}
                 </div>
               </div>
             </div>
 
-            {/* Total and Action */}
-            <div className="flex items-center justify-between rounded-xl bg-indigo-50/80 border border-indigo-100 p-4">
+            {/* Subtotal & Add Button */}
+            <div className="flex items-center justify-between rounded-xl bg-stone-100/70 p-4 border border-stone-200">
               <div>
-                <span className="text-xs font-medium text-indigo-900">Total a cobrar:</span>
-                <div className="text-2xl font-black text-indigo-950 tracking-tight">
+                <span className="text-xs text-stone-500">Subtotal del servicio:</span>
+                <div className="text-xl font-black text-stone-900">
                   {money.format(
                     (impresionModalidad === "bn"
                       ? srvImpresionBn.precio_actual
                       : srvImpresionColor.precio_actual) * (impresionPaginas || 1)
                   )}
                 </div>
-                <span className="text-[11px] text-indigo-700">
-                  {impresionPaginas} pág(s) ×{" "}
-                  {money.format(
-                    impresionModalidad === "bn"
-                      ? srvImpresionBn.precio_actual
-                      : srvImpresionColor.precio_actual
-                  )}
-                </span>
               </div>
 
               <button
                 type="button"
                 onClick={handleAddImpresion}
-                className="flex items-center gap-2 rounded-xl bg-indigo-600 px-5 py-3 text-sm font-bold text-white shadow-md hover:bg-indigo-700 active:scale-95 transition cursor-pointer"
+                className="flex items-center gap-2 rounded-xl bg-stone-900 px-5 py-3 text-xs font-bold text-white shadow-xs hover:bg-stone-800 active:scale-95 transition"
               >
                 <PlusIcon className="h-4 w-4" />
                 <span>Agregar al Carrito</span>
@@ -562,77 +543,69 @@ export function ServicesSelector({
 
         {/* ================= 3. LAMINADOS ================= */}
         {tabActiva === "laminados" && (
-          <div className="max-w-xl mx-auto space-y-6">
-            <div className="flex items-center justify-between border-b border-stone-100 pb-3">
+          <div className="max-w-xl mx-auto space-y-5">
+            <div className="flex items-center justify-between">
               <div>
-                <h3 className="text-base font-bold text-stone-900 flex items-center gap-2">
-                  <LayersIcon className="h-5 w-5 text-indigo-600" />
-                  Servicio de Laminado / Termolaminación
+                <h3 className="text-base font-bold text-stone-900">
+                  Servicio de Laminado / Enmicado
                 </h3>
                 <p className="text-xs text-stone-500">
-                  Plastificado térmico de documentos, credenciales y títulos.
+                  Protección térmica para carnés, diplomas y documentos.
                 </p>
               </div>
-              <span className="rounded-full bg-indigo-50 px-2.5 py-1 text-xs font-semibold text-indigo-700 border border-indigo-200">
-                Tarifa fija
-              </span>
             </div>
 
-            {/* Size Selector */}
+            {/* Format Selection */}
             <div className="grid grid-cols-2 gap-3">
               <button
                 type="button"
                 onClick={() => setLaminadoTipo("carta")}
-                className={`flex flex-col items-start p-4 rounded-xl border transition-all text-left ${
+                className={`p-4 rounded-xl border text-left transition-all ${
                   laminadoTipo === "carta"
-                    ? "border-indigo-600 bg-indigo-50/60 ring-2 ring-indigo-600/20"
+                    ? "border-stone-900 bg-stone-50 ring-1 ring-stone-900/10"
                     : "border-stone-200 bg-white hover:border-stone-300"
                 }`}
               >
-                <span className="text-xs font-bold uppercase tracking-wider text-stone-500">
-                  Formato
-                </span>
-                <span className="text-sm font-bold text-stone-900 mt-1">
-                  Tamaño Carta
-                </span>
-                <p className="text-[11px] text-stone-500 mt-0.5">
-                  Mica térmica estándar (8.5 x 11 in)
+                <div className="flex items-center justify-between mb-1">
+                  <span className="text-xs font-bold uppercase text-stone-700">
+                    Tamaño Carta
+                  </span>
+                  <span className="font-extrabold text-sm text-stone-900">
+                    {money.format(srvLaminadoCarta.precio_actual)}
+                  </span>
+                </div>
+                <p className="text-xs text-stone-500">
+                  Diplomas, certificados, hojas carta.
                 </p>
-                <span className="text-lg font-extrabold text-indigo-700 mt-2">
-                  {money.format(srvLaminadoCarta.precio_actual)}{" "}
-                  <span className="text-xs font-normal text-stone-500">c/u</span>
-                </span>
               </button>
 
               <button
                 type="button"
                 onClick={() => setLaminadoTipo("media_carta")}
-                className={`flex flex-col items-start p-4 rounded-xl border transition-all text-left ${
+                className={`p-4 rounded-xl border text-left transition-all ${
                   laminadoTipo === "media_carta"
-                    ? "border-indigo-600 bg-indigo-50/60 ring-2 ring-indigo-600/20"
+                    ? "border-stone-900 bg-stone-50 ring-1 ring-stone-900/10"
                     : "border-stone-200 bg-white hover:border-stone-300"
                 }`}
               >
-                <span className="text-xs font-bold uppercase tracking-wider text-stone-500">
-                  Formato
-                </span>
-                <span className="text-sm font-bold text-stone-900 mt-1">
-                  Media Carta / Credencial
-                </span>
-                <p className="text-[11px] text-stone-500 mt-0.5">
-                  Mica para gafetes y credenciales
+                <div className="flex items-center justify-between mb-1">
+                  <span className="text-xs font-bold uppercase text-stone-700">
+                    Media Carta / Carné
+                  </span>
+                  <span className="font-extrabold text-sm text-stone-900">
+                    {money.format(srvLaminadoMedia.precio_actual)}
+                  </span>
+                </div>
+                <p className="text-xs text-stone-500">
+                  Tarjetas, credenciales, gafetes.
                 </p>
-                <span className="text-lg font-extrabold text-indigo-700 mt-2">
-                  {money.format(srvLaminadoMedia.precio_actual)}{" "}
-                  <span className="text-xs font-normal text-stone-500">c/u</span>
-                </span>
               </button>
             </div>
 
-            {/* Quantity Input */}
-            <div className="rounded-xl border border-stone-200 bg-stone-50/50 p-4 space-y-3">
+            {/* Quantity */}
+            <div className="rounded-xl border border-stone-200 bg-stone-50/50 p-4 space-y-2">
               <label className="block text-xs font-bold text-stone-700">
-                Cantidad de Micas / Piezas
+                Cantidad de Micas a Laminar
               </label>
               <div className="flex items-center gap-3">
                 <input
@@ -641,49 +614,46 @@ export function ServicesSelector({
                   step="1"
                   value={laminadoCantidad}
                   onChange={(e) =>
-                    setLaminadoCantidad(Math.max(1, parseInt(e.target.value, 10) || 1))
+                    setLaminadoCantidad(Math.max(1, parseInt(e.target.value) || 1))
                   }
-                  className="w-32 rounded-xl border border-stone-300 bg-white px-3 py-2 text-center text-lg font-bold text-stone-900 outline-none focus:border-indigo-600 focus:ring-2 focus:ring-indigo-100"
+                  className="w-28 rounded-xl border border-stone-300 bg-white p-2.5 text-center text-lg font-black text-stone-900 outline-none focus:border-stone-600"
                 />
-                <div className="flex flex-wrap gap-1.5">
-                  {[1, 2, 3, 5, 10].map((n) => (
+                <div className="flex gap-1.5">
+                  {[1, 2, 3, 5, 10].map((num) => (
                     <button
-                      key={n}
+                      key={num}
                       type="button"
-                      onClick={() => setLaminadoCantidad(n)}
-                      className={`rounded-lg border px-2.5 py-1 text-xs font-semibold transition ${
-                        laminadoCantidad === n
-                          ? "border-stone-900 bg-stone-900 text-white"
-                          : "border-stone-200 bg-white text-stone-700 hover:bg-stone-100"
+                      onClick={() => setLaminadoCantidad(num)}
+                      className={`rounded-lg px-2.5 py-1.5 text-xs font-bold transition ${
+                        laminadoCantidad === num
+                          ? "bg-stone-900 text-white"
+                          : "bg-white text-stone-700 border border-stone-200 hover:bg-stone-100"
                       }`}
                     >
-                      {n} un.
+                      {num}
                     </button>
                   ))}
                 </div>
               </div>
             </div>
 
-            {/* Total and Action */}
-            <div className="flex items-center justify-between rounded-xl bg-indigo-50/80 border border-indigo-100 p-4">
+            {/* Subtotal & Add Button */}
+            <div className="flex items-center justify-between rounded-xl bg-stone-100/70 p-4 border border-stone-200">
               <div>
-                <span className="text-xs font-medium text-indigo-900">Total a cobrar:</span>
-                <div className="text-2xl font-black text-indigo-950 tracking-tight">
+                <span className="text-xs text-stone-500">Subtotal del servicio:</span>
+                <div className="text-xl font-black text-stone-900">
                   {money.format(
                     (laminadoTipo === "carta"
                       ? srvLaminadoCarta.precio_actual
                       : srvLaminadoMedia.precio_actual) * (laminadoCantidad || 1)
                   )}
                 </div>
-                <span className="text-[11px] text-indigo-700">
-                  {laminadoCantidad} pieza(s) {laminadoTipo === "carta" ? "Carta" : "Media Carta"}
-                </span>
               </div>
 
               <button
                 type="button"
                 onClick={handleAddLaminado}
-                className="flex items-center gap-2 rounded-xl bg-indigo-600 px-5 py-3 text-sm font-bold text-white shadow-md hover:bg-indigo-700 active:scale-95 transition cursor-pointer"
+                className="flex items-center gap-2 rounded-xl bg-stone-900 px-5 py-3 text-xs font-bold text-white shadow-xs hover:bg-stone-800 active:scale-95 transition"
               >
                 <PlusIcon className="h-4 w-4" />
                 <span>Agregar al Carrito</span>
@@ -694,44 +664,25 @@ export function ServicesSelector({
 
         {/* ================= 4. ENCOLOCHADOS ================= */}
         {tabActiva === "encolochados" && (
-          <div className="max-w-xl mx-auto space-y-6">
-            <div className="flex items-center justify-between border-b border-stone-100 pb-3">
+          <div className="max-w-xl mx-auto space-y-5">
+            <div className="flex items-center justify-between">
               <div>
-                <h3 className="text-base font-bold text-stone-900 flex items-center gap-2">
-                  <BookOpenIcon className="h-5 w-5 text-indigo-600" />
-                  Servicio de Encolochado / Espiral
+                <h3 className="text-base font-bold text-stone-900">
+                  Encolochado de Documentos
                 </h3>
                 <p className="text-xs text-stone-500">
-                  Encuadernación con espiral de plástico y pastas transparentes/negras.
+                  Encuadernación con resorte plástico y pastas transparentes.
                 </p>
               </div>
-              <span className="rounded-full bg-indigo-50 px-2.5 py-1 text-xs font-semibold text-indigo-700 border border-indigo-200">
-                Tarifa por hoja
+              <span className="rounded-full bg-stone-100 px-3 py-1 text-xs font-bold text-stone-800 border border-stone-200">
+                Tarifa: {money.format(srvEncolochado.precio_actual)} / hoja
               </span>
             </div>
 
-            {/* Tariff overview banner */}
-            <div className="rounded-xl border border-indigo-200 bg-indigo-50/50 p-4 flex items-center justify-between">
-              <div>
-                <span className="text-xs font-semibold text-indigo-900">
-                  Tarifa configurada por hoja:
-                </span>
-                <p className="text-xs text-indigo-700 mt-0.5">
-                  Multiplica el número exacto de hojas por la cuota vigente.
-                </p>
-              </div>
-              <div className="text-right">
-                <span className="text-xl font-black text-indigo-900">
-                  {money.format(srvEncolochado.precio_actual)}
-                </span>
-                <span className="text-xs text-indigo-600 block">/ hoja</span>
-              </div>
-            </div>
-
-            {/* Sheets Input */}
+            {/* Sheet Count */}
             <div className="rounded-xl border border-stone-200 bg-stone-50/50 p-4 space-y-3">
               <label className="block text-xs font-bold text-stone-700">
-                Cantidad de Hojas del Documento
+                Total de Hojas del Cuaderno / Documento
               </label>
               <div className="flex items-center gap-3">
                 <input
@@ -740,45 +691,42 @@ export function ServicesSelector({
                   step="1"
                   value={encolochadoHojas}
                   onChange={(e) =>
-                    setEncolochadoHojas(Math.max(1, parseInt(e.target.value, 10) || 1))
+                    setEncolochadoHojas(Math.max(1, parseInt(e.target.value) || 1))
                   }
-                  className="w-32 rounded-xl border border-stone-300 bg-white px-3 py-2 text-center text-lg font-bold text-stone-900 outline-none focus:border-indigo-600 focus:ring-2 focus:ring-indigo-100"
+                  className="w-28 rounded-xl border border-stone-300 bg-white p-2.5 text-center text-lg font-black text-stone-900 outline-none focus:border-stone-600"
                 />
                 <div className="flex flex-wrap gap-1.5">
-                  {[20, 50, 100, 150, 200].map((n) => (
+                  {[10, 25, 50, 80, 100, 150, 200].map((num) => (
                     <button
-                      key={n}
+                      key={num}
                       type="button"
-                      onClick={() => setEncolochadoHojas(n)}
-                      className={`rounded-lg border px-2.5 py-1 text-xs font-semibold transition ${
-                        encolochadoHojas === n
-                          ? "border-stone-900 bg-stone-900 text-white"
-                          : "border-stone-200 bg-white text-stone-700 hover:bg-stone-100"
+                      onClick={() => setEncolochadoHojas(num)}
+                      className={`rounded-lg px-2.5 py-1.5 text-xs font-bold transition ${
+                        encolochadoHojas === num
+                          ? "bg-stone-900 text-white"
+                          : "bg-white text-stone-700 border border-stone-200 hover:bg-stone-100"
                       }`}
                     >
-                      {n} hojas
+                      {num} h.
                     </button>
                   ))}
                 </div>
               </div>
             </div>
 
-            {/* Total and Action */}
-            <div className="flex items-center justify-between rounded-xl bg-indigo-50/80 border border-indigo-100 p-4">
+            {/* Subtotal & Add Button */}
+            <div className="flex items-center justify-between rounded-xl bg-stone-100/70 p-4 border border-stone-200">
               <div>
-                <span className="text-xs font-medium text-indigo-900">Total a cobrar:</span>
-                <div className="text-2xl font-black text-indigo-950 tracking-tight">
+                <span className="text-xs text-stone-500">Subtotal del servicio:</span>
+                <div className="text-xl font-black text-stone-900">
                   {money.format(srvEncolochado.precio_actual * (encolochadoHojas || 1))}
                 </div>
-                <span className="text-[11px] text-indigo-700">
-                  {encolochadoHojas} hojas × {money.format(srvEncolochado.precio_actual)}
-                </span>
               </div>
 
               <button
                 type="button"
                 onClick={handleAddEncolochado}
-                className="flex items-center gap-2 rounded-xl bg-indigo-600 px-5 py-3 text-sm font-bold text-white shadow-md hover:bg-indigo-700 active:scale-95 transition cursor-pointer"
+                className="flex items-center gap-2 rounded-xl bg-stone-900 px-5 py-3 text-xs font-bold text-white shadow-xs hover:bg-stone-800 active:scale-95 transition"
               >
                 <PlusIcon className="h-4 w-4" />
                 <span>Agregar al Carrito</span>
@@ -789,61 +737,79 @@ export function ServicesSelector({
 
         {/* ================= 5. SUBLIMADOS ================= */}
         {tabActiva === "sublimados" && (
-          <div className="max-w-xl mx-auto space-y-6">
-            <div className="flex items-center justify-between border-b border-stone-100 pb-3">
+          <div className="max-w-xl mx-auto space-y-5">
+            <div className="flex items-center justify-between">
               <div>
-                <h3 className="text-base font-bold text-stone-900 flex items-center gap-2">
-                  <SparklesIcon className="h-5 w-5 text-indigo-600" />
-                  Artículos Sublimados / Personalizados
+                <h3 className="text-base font-bold text-stone-900">
+                  Artículos Sublimados y Personalizados
                 </h3>
                 <p className="text-xs text-stone-500">
-                  Precio libre y descripción personalizada para tazas, playeras, termos, etc.
+                  Tazas, playeras, termos, gorras y artículos bajo pedido.
                 </p>
               </div>
-              <span className="rounded-full bg-amber-50 px-2.5 py-1 text-xs font-semibold text-amber-800 border border-amber-200">
-                Precio abierto
-              </span>
             </div>
 
-            {/* Description input */}
+            {/* Quick Templates */}
             <div className="space-y-1.5">
               <label className="block text-xs font-bold text-stone-700">
-                Descripción del Artículo / Personalización
+                Atajos de Artículos Comunes
+              </label>
+              <div className="flex flex-wrap gap-2">
+                {[
+                  { desc: "Taza blanca personalizada 11oz", precio: "65.00" },
+                  { desc: "Taza mágica negra 11oz", precio: "110.00" },
+                  { desc: "Playera blanca sublimada", precio: "120.00" },
+                  { desc: "Termo de aluminio 500ml", precio: "145.00" },
+                  { desc: "Gorra trucker personalizada", precio: "75.00" },
+                ].map((item, idx) => (
+                  <button
+                    key={idx}
+                    type="button"
+                    onClick={() => {
+                      setSublimadoDesc(item.desc);
+                      setSublimadoPrecioUnitario(item.precio);
+                    }}
+                    className="rounded-lg bg-stone-100 px-2.5 py-1.5 text-xs font-medium text-stone-700 hover:bg-stone-200 border border-stone-200 transition"
+                  >
+                    {item.desc.split(" ")[0]} ({money.format(parseFloat(item.precio))})
+                  </button>
+                ))}
+              </div>
+            </div>
+
+            {/* Custom Description */}
+            <div className="space-y-1">
+              <label className="block text-xs font-bold text-stone-700">
+                Descripción del Artículo / Pedido
               </label>
               <input
                 type="text"
                 value={sublimadoDesc}
                 onChange={(e) => setSublimadoDesc(e.target.value)}
-                placeholder="Ej. Taza mágica 11oz con diseño graduación, Playera Blanca M..."
-                className="w-full rounded-xl border border-stone-300 bg-white px-3.5 py-2.5 text-sm text-stone-900 outline-none focus:border-indigo-600 focus:ring-2 focus:ring-indigo-100"
+                placeholder="Ej. Taza mágica negra con foto familiar..."
+                className="w-full rounded-xl border border-stone-300 bg-white p-2.5 text-xs text-stone-900 outline-none focus:border-stone-600"
               />
             </div>
 
-            {/* Unit Price and Quantity in 2 columns */}
-            <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
-              <div className="space-y-1.5">
-                <label className="block text-xs font-bold text-stone-700">
-                  Precio Unitario Manual ($)
+            {/* Unit Price & Quantity */}
+            <div className="grid grid-cols-2 gap-3">
+              <div>
+                <label className="block text-xs font-bold text-stone-700 mb-1">
+                  Precio Unitario ($)
                 </label>
-                <div className="relative">
-                  <span className="pointer-events-none absolute inset-y-0 left-0 flex items-center pl-3 text-stone-400 font-bold text-sm">
-                    $
-                  </span>
-                  <input
-                    type="number"
-                    step="0.01"
-                    min="0"
-                    value={sublimadoPrecioUnitario}
-                    onChange={(e) => setSublimadoPrecioUnitario(e.target.value)}
-                    placeholder="0.00"
-                    className="w-full rounded-xl border border-stone-300 bg-white py-2.5 pl-7 pr-3 text-base font-bold text-stone-900 outline-none focus:border-indigo-600 focus:ring-2 focus:ring-indigo-100"
-                  />
-                </div>
+                <input
+                  type="number"
+                  step="0.50"
+                  min="0"
+                  value={sublimadoPrecioUnitario}
+                  onChange={(e) => setSublimadoPrecioUnitario(e.target.value)}
+                  className="w-full rounded-xl border border-stone-300 bg-white p-2.5 text-sm font-bold text-stone-900 outline-none focus:border-stone-600"
+                />
               </div>
 
-              <div className="space-y-1.5">
-                <label className="block text-xs font-bold text-stone-700">
-                  Cantidad de Artículos
+              <div>
+                <label className="block text-xs font-bold text-stone-700 mb-1">
+                  Cantidad
                 </label>
                 <input
                   type="number"
@@ -851,60 +817,29 @@ export function ServicesSelector({
                   step="1"
                   value={sublimadoCantidad}
                   onChange={(e) =>
-                    setSublimadoCantidad(Math.max(1, parseInt(e.target.value, 10) || 1))
+                    setSublimadoCantidad(Math.max(1, parseInt(e.target.value) || 1))
                   }
-                  className="w-full rounded-xl border border-stone-300 bg-white px-3 py-2.5 text-base font-bold text-stone-900 outline-none focus:border-indigo-600 focus:ring-2 focus:ring-indigo-100 text-center"
+                  className="w-full rounded-xl border border-stone-300 bg-white p-2.5 text-sm font-bold text-stone-900 outline-none focus:border-stone-600 text-center"
                 />
               </div>
             </div>
 
-            {/* Presets suggestions for common sublimation items */}
-            <div className="space-y-1.5">
-              <span className="text-[11px] font-semibold text-stone-500">
-                Plantillas rápidas sugeridas:
-              </span>
-              <div className="flex flex-wrap gap-2">
-                {[
-                  { desc: "Taza blanca 11oz personalizada", precio: "65.00" },
-                  { desc: "Taza mágica negra 11oz", precio: "120.00" },
-                  { desc: "Playera sublimada blanca", precio: "150.00" },
-                  { desc: "Termo de aluminio 500ml", precio: "180.00" },
-                  { desc: "Gorra personalizada", precio: "90.00" },
-                ].map((item) => (
-                  <button
-                    key={item.desc}
-                    type="button"
-                    onClick={() => {
-                      setSublimadoDesc(item.desc);
-                      setSublimadoPrecioUnitario(item.precio);
-                    }}
-                    className="rounded-lg border border-stone-200 bg-stone-50 px-2.5 py-1 text-xs text-stone-700 hover:bg-stone-100 hover:border-stone-300 transition"
-                  >
-                    {item.desc} (${item.precio})
-                  </button>
-                ))}
-              </div>
-            </div>
-
-            {/* Total and Action */}
-            <div className="flex items-center justify-between rounded-xl bg-indigo-50/80 border border-indigo-100 p-4">
+            {/* Subtotal & Add Button */}
+            <div className="flex items-center justify-between rounded-xl bg-stone-100/70 p-4 border border-stone-200">
               <div>
-                <span className="text-xs font-medium text-indigo-900">Total a cobrar:</span>
-                <div className="text-2xl font-black text-indigo-950 tracking-tight">
+                <span className="text-xs text-stone-500">Subtotal del servicio:</span>
+                <div className="text-xl font-black text-stone-900">
                   {money.format(
-                    (parseFloat(sublimadoPrecioUnitario) || 0) * (sublimadoCantidad || 1)
+                    (parseFloat(sublimadoPrecioUnitario) || 0) *
+                      (sublimadoCantidad || 1)
                   )}
                 </div>
-                <span className="text-[11px] text-indigo-700">
-                  {sublimadoCantidad} un. ×{" "}
-                  {money.format(parseFloat(sublimadoPrecioUnitario) || 0)}
-                </span>
               </div>
 
               <button
                 type="button"
                 onClick={handleAddSublimado}
-                className="flex items-center gap-2 rounded-xl bg-indigo-600 px-5 py-3 text-sm font-bold text-white shadow-md hover:bg-indigo-700 active:scale-95 transition cursor-pointer"
+                className="flex items-center gap-2 rounded-xl bg-stone-900 px-5 py-3 text-xs font-bold text-white shadow-xs hover:bg-stone-800 active:scale-95 transition"
               >
                 <PlusIcon className="h-4 w-4" />
                 <span>Agregar al Carrito</span>

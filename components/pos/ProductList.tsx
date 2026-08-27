@@ -2,7 +2,7 @@
 
 import { useMemo, useState } from "react";
 import type { CartItem, CartItemServicio, Producto, Servicio } from "@/types/database";
-import { SearchIcon, XMarkIcon, PlusIcon, BookOpenIcon, SparklesIcon } from "./Icons";
+import { SearchIcon, XMarkIcon, PlusIcon, BookOpenIcon, LayersIcon } from "./Icons";
 import { ServicesSelector } from "./ServicesSelector";
 
 const money = new Intl.NumberFormat("es-MX", {
@@ -88,13 +88,13 @@ export function ProductList({
           onClick={() => setMainTab("servicios")}
           className={`flex-1 flex items-center justify-center gap-2 rounded-xl py-2.5 px-4 text-xs font-bold transition-all ${
             mainTab === "servicios"
-              ? "bg-white text-indigo-700 shadow-xs ring-1 ring-indigo-600/10"
-              : "text-stone-600 hover:text-indigo-700 hover:bg-white/50"
+              ? "bg-white text-stone-900 shadow-xs ring-1 ring-stone-900/5"
+              : "text-stone-600 hover:text-stone-900 hover:bg-white/50"
           }`}
         >
-          <SparklesIcon className="h-4 w-4 text-indigo-600" />
+          <LayersIcon className="h-4 w-4 text-stone-700" />
           <span>Servicios Rápidos</span>
-          <span className="ml-1 rounded-full bg-indigo-50 px-2 py-0.5 text-[10px] font-semibold text-indigo-700 border border-indigo-200">
+          <span className="ml-1 rounded-full bg-stone-100 px-2 py-0.5 text-[10px] font-semibold text-stone-700 border border-stone-200">
             Fotocopias, Laminados, etc.
           </span>
         </button>
@@ -108,7 +108,7 @@ export function ProductList({
             <div className="flex flex-wrap items-center justify-between gap-3">
               <div className="flex items-center gap-2">
                 <h2 className="text-base font-semibold text-stone-900">Artículos Físicos</h2>
-                <span className="rounded-full bg-stone-100 px-2 py-0.5 text-xs font-medium text-stone-600">
+                <span className="rounded-full bg-stone-100 px-2.5 py-0.5 text-xs font-medium text-stone-600">
                   {productos.length}
                 </span>
               </div>
@@ -224,13 +224,12 @@ export function ProductList({
                   return (
                     <div
                       key={producto.id}
-                      onClick={() => !deshabilitado && onAddToCart(producto)}
                       className={`group relative flex flex-col justify-between rounded-xl border p-3.5 transition-all ${
                         sinStock
-                          ? "border-stone-200 bg-stone-50/60 opacity-60 cursor-not-allowed"
+                          ? "border-stone-200 bg-stone-50/60 opacity-60"
                           : maxAlcanzado
-                          ? "border-amber-200 bg-amber-50/30 cursor-not-allowed"
-                          : "border-stone-200 bg-white hover:border-stone-400 hover:shadow-sm cursor-pointer active:scale-[0.99]"
+                          ? "border-amber-200 bg-amber-50/30"
+                          : "border-stone-200 bg-white hover:border-stone-300 hover:shadow-xs"
                       }`}
                     >
                       <div>
@@ -245,7 +244,7 @@ export function ProductList({
                               Stock bajo: {producto.stock} un.
                             </span>
                           ) : (
-                            <span className="inline-flex items-center rounded-md bg-emerald-50 px-2 py-0.5 text-xs font-medium text-emerald-700">
+                            <span className="inline-flex items-center rounded-md bg-stone-100 px-2 py-0.5 text-xs font-medium text-stone-700">
                               Stock: {producto.stock}
                             </span>
                           )}
@@ -258,12 +257,12 @@ export function ProductList({
                         </div>
 
                         {/* Product title */}
-                        <h3 className="line-clamp-2 text-sm font-semibold text-stone-900 group-hover:text-stone-800">
+                        <h3 className="line-clamp-2 text-sm font-semibold text-stone-900">
                           {producto.nombre}
                         </h3>
                       </div>
 
-                      {/* Price & Add button */}
+                      {/* Price & Add button (ONLY way to add to cart) */}
                       <div className="mt-3 flex items-center justify-between border-t border-stone-100 pt-2.5">
                         <span className="text-base font-bold text-stone-900">
                           {money.format(producto.precio)}
@@ -272,14 +271,11 @@ export function ProductList({
                         <button
                           type="button"
                           disabled={deshabilitado}
-                          onClick={(e) => {
-                            e.stopPropagation();
-                            onAddToCart(producto);
-                          }}
-                          className={`flex items-center gap-1 rounded-lg px-2.5 py-1.5 text-xs font-medium transition ${
+                          onClick={() => onAddToCart(producto)}
+                          className={`flex items-center gap-1 rounded-lg px-2.5 py-1.5 text-xs font-semibold transition ${
                             deshabilitado
                               ? "bg-stone-100 text-stone-400 cursor-not-allowed"
-                              : "bg-stone-900 text-white hover:bg-stone-800 active:scale-95 cursor-pointer"
+                              : "bg-stone-900 text-white hover:bg-stone-800 active:scale-95 cursor-pointer shadow-xs"
                           }`}
                         >
                           <PlusIcon className="h-3.5 w-3.5" />
@@ -310,4 +306,5 @@ export function ProductList({
     </div>
   );
 }
+
 

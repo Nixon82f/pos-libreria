@@ -6,7 +6,7 @@ import {
   TrashIcon,
   PlusIcon,
   MinusIcon,
-  SparklesIcon,
+  LayersIcon,
 } from "./Icons";
 
 const money = new Intl.NumberFormat("es-MX", {
@@ -33,12 +33,17 @@ export function Cart({
   onOpenCheckout,
   isProcessing,
 }: CartProps) {
-  const totalArticulos = cartItems.reduce((acc, item) => acc + item.cantidad, 0);
+  const totalArticulos = cartItems.reduce(
+    (acc, item) => acc + item.cantidad,
+    0
+  );
+
   const totalPagar = cartItems.reduce((acc, item) => {
-    if (item.tipo === "servicio") {
-      return acc + item.precio_unitario * item.cantidad;
-    }
-    return acc + item.producto.precio * item.cantidad;
+    const precio =
+      item.tipo === "producto"
+        ? item.producto.precio
+        : item.precio_unitario;
+    return acc + precio * item.cantidad;
   }, 0);
 
   return (
@@ -46,13 +51,15 @@ export function Cart({
       {/* Cart Header */}
       <div className="flex items-center justify-between border-b border-stone-200 p-4 sm:p-5">
         <div className="flex items-center gap-2">
-          <ShoppingCartIcon className="h-5 w-5 text-stone-700" />
-          <h2 className="text-lg font-semibold text-stone-900">Carrito de Venta</h2>
-          {totalArticulos > 0 && (
-            <span className="rounded-full bg-stone-900 px-2 py-0.5 text-xs font-bold text-white">
-              {totalArticulos}
-            </span>
-          )}
+          <div className="flex h-8 w-8 items-center justify-center rounded-lg bg-stone-900 text-white">
+            <ShoppingCartIcon className="h-4 w-4" />
+          </div>
+          <div>
+            <h2 className="text-base font-semibold text-stone-900">Carrito de Venta</h2>
+            <p className="text-xs text-stone-500">
+              {totalArticulos} {totalArticulos === 1 ? "artículo" : "artículos"}
+            </p>
+          </div>
         </div>
 
         {cartItems.length > 0 && (
@@ -60,9 +67,9 @@ export function Cart({
             type="button"
             disabled={isProcessing}
             onClick={onClearCart}
-            className="text-xs font-medium text-stone-500 hover:text-red-600 transition disabled:opacity-50 cursor-pointer"
+            className="text-xs font-medium text-stone-500 hover:text-red-600 transition disabled:opacity-50"
           >
-            Vaciar todo
+            Vaciar
           </button>
         )}
       </div>
@@ -70,11 +77,13 @@ export function Cart({
       {/* Cart Items List */}
       <div className="flex-1 overflow-y-auto p-4 sm:p-5">
         {cartItems.length === 0 ? (
-          <div className="flex h-full min-h-64 flex-col items-center justify-center rounded-xl border border-dashed border-stone-200 p-8 text-center text-stone-400">
-            <ShoppingCartIcon className="h-12 w-12 text-stone-300 mb-3" />
-            <p className="text-base font-medium text-stone-700">El carrito está vacío</p>
-            <p className="mt-1 text-xs text-stone-500 max-w-xs">
-              Selecciona productos del catálogo o agrega servicios rápidos a la venta.
+          <div className="flex h-full flex-col items-center justify-center text-center text-stone-400">
+            <div className="rounded-full bg-stone-100 p-4 mb-3">
+              <ShoppingCartIcon className="h-8 w-8 text-stone-400" />
+            </div>
+            <p className="text-sm font-medium text-stone-600">El carrito está vacío</p>
+            <p className="mt-1 text-xs text-stone-400 max-w-[200px]">
+              Selecciona productos o servicios del catálogo para agregarlos.
             </p>
           </div>
         ) : (
@@ -82,10 +91,12 @@ export function Cart({
             {cartItems.map((item) => {
               const isServicio = item.tipo === "servicio";
               const itemId = item.id;
-              const nombre = isServicio ? item.nombre : item.producto.nombre;
-              const precioUnitario = isServicio
-                ? item.precio_unitario
-                : item.producto.precio;
+              const nombre =
+                item.tipo === "producto" ? item.producto.nombre : item.nombre;
+              const precioUnitario =
+                item.tipo === "producto"
+                  ? item.producto.precio
+                  : item.precio_unitario;
               const subtotal = precioUnitario * item.cantidad;
               const maxAlcanzado = !isServicio && item.cantidad >= item.producto.stock;
 
@@ -95,8 +106,8 @@ export function Cart({
                     <div className="flex-1 min-w-0">
                       <div className="flex items-center gap-1.5 flex-wrap">
                         {isServicio && (
-                          <span className="inline-flex items-center gap-1 rounded-md bg-indigo-50 px-1.5 py-0.5 text-[10px] font-bold text-indigo-700 border border-indigo-200/60">
-                            <SparklesIcon className="h-2.5 w-2.5" />
+                          <span className="inline-flex items-center gap-1 rounded-md bg-stone-100 px-1.5 py-0.5 text-[10px] font-bold text-stone-700 border border-stone-200">
+                            <LayersIcon className="h-2.5 w-2.5" />
                             Servicio
                           </span>
                         )}
@@ -106,7 +117,7 @@ export function Cart({
                       </div>
 
                       {isServicio && item.descripcion_personalizada && (
-                        <p className="text-xs text-indigo-900/80 font-medium mt-0.5">
+                        <p className="text-xs text-stone-600 font-medium mt-0.5">
                           {item.descripcion_personalizada}
                         </p>
                       )}
@@ -114,7 +125,7 @@ export function Cart({
                       <p className="text-xs text-stone-500 mt-0.5">
                         {money.format(precioUnitario)} c/u &middot;{" "}
                         {isServicio ? (
-                          <span className="text-indigo-600 font-medium">
+                          <span className="text-stone-600 font-medium">
                             Tarifa de servicio
                           </span>
                         ) : (

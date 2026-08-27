@@ -42,25 +42,25 @@ export function ServicesSelector({
     return servicios.find((s) => s.codigo === codigo);
   };
 
-  // State 1: Fotocopias
+  // State 1: Fotocopias (string to allow full deletion/typing)
   const [fotocopiaModalidad, setFotocopiaModalidad] = useState<"bn" | "color">("bn");
-  const [fotocopiaPaginas, setFotocopiaPaginas] = useState<number>(1);
+  const [fotocopiaPaginas, setFotocopiaPaginas] = useState<string>("1");
 
   // State 2: Impresiones
   const [impresionModalidad, setImpresionModalidad] = useState<"bn" | "color">("bn");
-  const [impresionPaginas, setImpresionPaginas] = useState<number>(1);
+  const [impresionPaginas, setImpresionPaginas] = useState<string>("1");
 
   // State 3: Encolochados
-  const [encolochadoHojas, setEncolochadoHojas] = useState<number>(20);
+  const [encolochadoHojas, setEncolochadoHojas] = useState<string>("20");
 
   // State 4: Laminados
   const [laminadoTipo, setLaminadoTipo] = useState<"carta" | "media_carta">("carta");
-  const [laminadoCantidad, setLaminadoCantidad] = useState<number>(1);
+  const [laminadoCantidad, setLaminadoCantidad] = useState<string>("1");
 
   // State 5: Sublimados
-  const [sublimadoDesc, setSublimadoDesc] = useState<string>("");
-  const [sublimadoPrecioUnitario, setSublimadoPrecioUnitario] = useState<string>("85.00");
-  const [sublimadoCantidad, setSublimadoCantidad] = useState<number>(1);
+  const [sublimadoDesc, setSublimadoDesc] = useState<string>("Taza blanca personalizada");
+  const [sublimadoPrecioUnitario, setSublimadoPrecioUnitario] = useState<string>("65.00");
+  const [sublimadoCantidad, setSublimadoCantidad] = useState<string>("1");
 
   // Service lookup references with fallback prices
   const srvFotocopiaBn = getServicio("fotocopia_bn") || {
@@ -151,7 +151,7 @@ export function ServicesSelector({
   // Handlers for adding services to cart
   const handleAddFotocopia = () => {
     const srv = fotocopiaModalidad === "bn" ? srvFotocopiaBn : srvFotocopiaColor;
-    const paginas = Math.max(1, fotocopiaPaginas || 1);
+    const paginas = Math.max(1, parseInt(fotocopiaPaginas, 10) || 1);
     const etiquetaModalidad = fotocopiaModalidad === "bn" ? "B&N" : "Color";
 
     onAddServiceToCart({
@@ -167,7 +167,7 @@ export function ServicesSelector({
 
   const handleAddImpresion = () => {
     const srv = impresionModalidad === "bn" ? srvImpresionBn : srvImpresionColor;
-    const paginas = Math.max(1, impresionPaginas || 1);
+    const paginas = Math.max(1, parseInt(impresionPaginas, 10) || 1);
     const etiquetaModalidad = impresionModalidad === "bn" ? "B&N" : "Color";
 
     onAddServiceToCart({
@@ -182,7 +182,7 @@ export function ServicesSelector({
   };
 
   const handleAddEncolochado = () => {
-    const hojas = Math.max(1, encolochadoHojas || 1);
+    const hojas = Math.max(1, parseInt(encolochadoHojas, 10) || 1);
     onAddServiceToCart({
       tipo: "servicio",
       servicio: srvEncolochado,
@@ -195,7 +195,7 @@ export function ServicesSelector({
 
   const handleAddLaminado = () => {
     const srv = laminadoTipo === "carta" ? srvLaminadoCarta : srvLaminadoMedia;
-    const cant = Math.max(1, laminadoCantidad || 1);
+    const cant = Math.max(1, parseInt(laminadoCantidad, 10) || 1);
     const tamano = laminadoTipo === "carta" ? "Carta" : "Media Carta";
 
     onAddServiceToCart({
@@ -211,7 +211,7 @@ export function ServicesSelector({
 
   const handleAddSublimado = () => {
     const pUni = parseFloat(sublimadoPrecioUnitario) || 0;
-    const cant = Math.max(1, sublimadoCantidad || 1);
+    const cant = Math.max(1, parseInt(sublimadoCantidad, 10) || 1);
     const desc = sublimadoDesc.trim() || "Artículo personalizado";
 
     onAddServiceToCart({
@@ -222,78 +222,90 @@ export function ServicesSelector({
       cantidad: cant,
       precio_unitario: pUni,
     });
-
-    setSublimadoDesc("");
   };
 
   return (
     <div className="flex h-full flex-col bg-white">
       {/* Services Category Tabs */}
-      <div className="flex border-b border-stone-200 bg-stone-50/80 p-2 gap-1.5 overflow-x-auto">
-        <button
-          type="button"
-          onClick={() => setTabActiva("fotocopias")}
-          className={`flex items-center gap-2 rounded-xl py-2 px-3.5 text-xs font-bold transition-all whitespace-nowrap ${
-            tabActiva === "fotocopias"
-              ? "bg-stone-900 text-white shadow-xs"
-              : "bg-white text-stone-700 hover:bg-stone-100 border border-stone-200/80"
-          }`}
-        >
-          <CopyIcon className="h-4 w-4" />
-          <span>Fotocopias</span>
-        </button>
+      <div className="flex items-center justify-between border-b border-stone-200 bg-stone-50/80 p-2 gap-1.5 overflow-x-auto">
+        <div className="flex items-center gap-1.5">
+          <button
+            type="button"
+            onClick={() => setTabActiva("fotocopias")}
+            className={`flex items-center gap-2 rounded-xl py-2 px-3.5 text-xs font-bold transition-all whitespace-nowrap ${
+              tabActiva === "fotocopias"
+                ? "bg-stone-900 text-white shadow-xs"
+                : "bg-white text-stone-700 hover:bg-stone-100 border border-stone-200/80"
+            }`}
+          >
+            <CopyIcon className="h-4 w-4" />
+            <span>Fotocopias</span>
+          </button>
 
-        <button
-          type="button"
-          onClick={() => setTabActiva("impresiones")}
-          className={`flex items-center gap-2 rounded-xl py-2 px-3.5 text-xs font-bold transition-all whitespace-nowrap ${
-            tabActiva === "impresiones"
-              ? "bg-stone-900 text-white shadow-xs"
-              : "bg-white text-stone-700 hover:bg-stone-100 border border-stone-200/80"
-          }`}
-        >
-          <PrinterIcon className="h-4 w-4" />
-          <span>Impresiones</span>
-        </button>
+          <button
+            type="button"
+            onClick={() => setTabActiva("impresiones")}
+            className={`flex items-center gap-2 rounded-xl py-2 px-3.5 text-xs font-bold transition-all whitespace-nowrap ${
+              tabActiva === "impresiones"
+                ? "bg-stone-900 text-white shadow-xs"
+                : "bg-white text-stone-700 hover:bg-stone-100 border border-stone-200/80"
+            }`}
+          >
+            <PrinterIcon className="h-4 w-4" />
+            <span>Impresiones</span>
+          </button>
 
-        <button
-          type="button"
-          onClick={() => setTabActiva("laminados")}
-          className={`flex items-center gap-2 rounded-xl py-2 px-3.5 text-xs font-bold transition-all whitespace-nowrap ${
-            tabActiva === "laminados"
-              ? "bg-stone-900 text-white shadow-xs"
-              : "bg-white text-stone-700 hover:bg-stone-100 border border-stone-200/80"
-          }`}
-        >
-          <LayersIcon className="h-4 w-4" />
-          <span>Laminados</span>
-        </button>
+          <button
+            type="button"
+            onClick={() => setTabActiva("laminados")}
+            className={`flex items-center gap-2 rounded-xl py-2 px-3.5 text-xs font-bold transition-all whitespace-nowrap ${
+              tabActiva === "laminados"
+                ? "bg-stone-900 text-white shadow-xs"
+                : "bg-white text-stone-700 hover:bg-stone-100 border border-stone-200/80"
+            }`}
+          >
+            <LayersIcon className="h-4 w-4" />
+            <span>Laminados</span>
+          </button>
 
-        <button
-          type="button"
-          onClick={() => setTabActiva("encolochados")}
-          className={`flex items-center gap-2 rounded-xl py-2 px-3.5 text-xs font-bold transition-all whitespace-nowrap ${
-            tabActiva === "encolochados"
-              ? "bg-stone-900 text-white shadow-xs"
-              : "bg-white text-stone-700 hover:bg-stone-100 border border-stone-200/80"
-          }`}
-        >
-          <BookOpenIcon className="h-4 w-4" />
-          <span>Encolochados</span>
-        </button>
+          <button
+            type="button"
+            onClick={() => setTabActiva("encolochados")}
+            className={`flex items-center gap-2 rounded-xl py-2 px-3.5 text-xs font-bold transition-all whitespace-nowrap ${
+              tabActiva === "encolochados"
+                ? "bg-stone-900 text-white shadow-xs"
+                : "bg-white text-stone-700 hover:bg-stone-100 border border-stone-200/80"
+            }`}
+          >
+            <BookOpenIcon className="h-4 w-4" />
+            <span>Encolochados</span>
+          </button>
 
-        <button
-          type="button"
-          onClick={() => setTabActiva("sublimados")}
-          className={`flex items-center gap-2 rounded-xl py-2 px-3.5 text-xs font-bold transition-all whitespace-nowrap ${
-            tabActiva === "sublimados"
-              ? "bg-stone-900 text-white shadow-xs"
-              : "bg-white text-stone-700 hover:bg-stone-100 border border-stone-200/80"
-          }`}
-        >
-          <TagIcon className="h-4 w-4" />
-          <span>Sublimados</span>
-        </button>
+          <button
+            type="button"
+            onClick={() => setTabActiva("sublimados")}
+            className={`flex items-center gap-2 rounded-xl py-2 px-3.5 text-xs font-bold transition-all whitespace-nowrap ${
+              tabActiva === "sublimados"
+                ? "bg-stone-900 text-white shadow-xs"
+                : "bg-white text-stone-700 hover:bg-stone-100 border border-stone-200/80"
+            }`}
+          >
+            <TagIcon className="h-4 w-4" />
+            <span>Sublimados</span>
+          </button>
+        </div>
+
+        {onOpenQuickInventory && (
+          <button
+            type="button"
+            onClick={onOpenQuickInventory}
+            className="flex items-center gap-1.5 rounded-xl border border-stone-300 bg-white hover:bg-stone-100 text-stone-800 px-3 py-1.5 text-xs font-semibold shadow-2xs transition shrink-0 cursor-pointer"
+            title="Agregar o sumar inventario de productos físicos"
+          >
+            <PackagePlusIcon className="h-3.5 w-3.5 text-stone-600" />
+            <span className="hidden lg:inline">+ Inventario</span>
+          </button>
+        )}
       </div>
 
       {/* Main Tab Body */}
@@ -370,9 +382,12 @@ export function ServicesSelector({
                   min="1"
                   step="1"
                   value={fotocopiaPaginas}
-                  onChange={(e) =>
-                    setFotocopiaPaginas(Math.max(1, parseInt(e.target.value) || 1))
-                  }
+                  onChange={(e) => setFotocopiaPaginas(e.target.value)}
+                  onBlur={() => {
+                    if (!fotocopiaPaginas || parseInt(fotocopiaPaginas, 10) < 1) {
+                      setFotocopiaPaginas("1");
+                    }
+                  }}
                   className="w-28 rounded-xl border border-stone-300 bg-white p-2.5 text-center text-lg font-black text-stone-900 outline-none focus:border-stone-600"
                 />
 
@@ -382,9 +397,9 @@ export function ServicesSelector({
                     <button
                       key={num}
                       type="button"
-                      onClick={() => setFotocopiaPaginas(num)}
+                      onClick={() => setFotocopiaPaginas(num.toString())}
                       className={`rounded-lg px-2.5 py-1.5 text-xs font-bold transition ${
-                        fotocopiaPaginas === num
+                        fotocopiaPaginas === num.toString()
                           ? "bg-stone-900 text-white"
                           : "bg-white text-stone-700 border border-stone-200 hover:bg-stone-100"
                       }`}
@@ -404,7 +419,8 @@ export function ServicesSelector({
                   {money.format(
                     (fotocopiaModalidad === "bn"
                       ? srvFotocopiaBn.precio_actual
-                      : srvFotocopiaColor.precio_actual) * (fotocopiaPaginas || 1)
+                      : srvFotocopiaColor.precio_actual) *
+                      Math.max(1, parseInt(fotocopiaPaginas, 10) || 1)
                   )}
                 </div>
               </div>
@@ -412,7 +428,7 @@ export function ServicesSelector({
               <button
                 type="button"
                 onClick={handleAddFotocopia}
-                className="flex items-center gap-2 rounded-xl bg-stone-900 px-5 py-3 text-xs font-bold text-white shadow-xs hover:bg-stone-800 active:scale-95 transition"
+                className="flex items-center gap-2 rounded-xl bg-stone-900 px-5 py-3 text-xs font-bold text-white shadow-xs hover:bg-stone-800 active:scale-95 transition cursor-pointer"
               >
                 <PlusIcon className="h-4 w-4" />
                 <span>Agregar al Carrito</span>
@@ -493,9 +509,12 @@ export function ServicesSelector({
                   min="1"
                   step="1"
                   value={impresionPaginas}
-                  onChange={(e) =>
-                    setImpresionPaginas(Math.max(1, parseInt(e.target.value) || 1))
-                  }
+                  onChange={(e) => setImpresionPaginas(e.target.value)}
+                  onBlur={() => {
+                    if (!impresionPaginas || parseInt(impresionPaginas, 10) < 1) {
+                      setImpresionPaginas("1");
+                    }
+                  }}
                   className="w-28 rounded-xl border border-stone-300 bg-white p-2.5 text-center text-lg font-black text-stone-900 outline-none focus:border-stone-600"
                 />
 
@@ -505,9 +524,9 @@ export function ServicesSelector({
                     <button
                       key={num}
                       type="button"
-                      onClick={() => setImpresionPaginas(num)}
+                      onClick={() => setImpresionPaginas(num.toString())}
                       className={`rounded-lg px-2.5 py-1.5 text-xs font-bold transition ${
-                        impresionPaginas === num
+                        impresionPaginas === num.toString()
                           ? "bg-stone-900 text-white"
                           : "bg-white text-stone-700 border border-stone-200 hover:bg-stone-100"
                       }`}
@@ -527,7 +546,8 @@ export function ServicesSelector({
                   {money.format(
                     (impresionModalidad === "bn"
                       ? srvImpresionBn.precio_actual
-                      : srvImpresionColor.precio_actual) * (impresionPaginas || 1)
+                      : srvImpresionColor.precio_actual) *
+                      Math.max(1, parseInt(impresionPaginas, 10) || 1)
                   )}
                 </div>
               </div>
@@ -535,7 +555,7 @@ export function ServicesSelector({
               <button
                 type="button"
                 onClick={handleAddImpresion}
-                className="flex items-center gap-2 rounded-xl bg-stone-900 px-5 py-3 text-xs font-bold text-white shadow-xs hover:bg-stone-800 active:scale-95 transition"
+                className="flex items-center gap-2 rounded-xl bg-stone-900 px-5 py-3 text-xs font-bold text-white shadow-xs hover:bg-stone-800 active:scale-95 transition cursor-pointer"
               >
                 <PlusIcon className="h-4 w-4" />
                 <span>Agregar al Carrito</span>
@@ -616,9 +636,12 @@ export function ServicesSelector({
                   min="1"
                   step="1"
                   value={laminadoCantidad}
-                  onChange={(e) =>
-                    setLaminadoCantidad(Math.max(1, parseInt(e.target.value) || 1))
-                  }
+                  onChange={(e) => setLaminadoCantidad(e.target.value)}
+                  onBlur={() => {
+                    if (!laminadoCantidad || parseInt(laminadoCantidad, 10) < 1) {
+                      setLaminadoCantidad("1");
+                    }
+                  }}
                   className="w-28 rounded-xl border border-stone-300 bg-white p-2.5 text-center text-lg font-black text-stone-900 outline-none focus:border-stone-600"
                 />
                 <div className="flex gap-1.5">
@@ -626,9 +649,9 @@ export function ServicesSelector({
                     <button
                       key={num}
                       type="button"
-                      onClick={() => setLaminadoCantidad(num)}
+                      onClick={() => setLaminadoCantidad(num.toString())}
                       className={`rounded-lg px-2.5 py-1.5 text-xs font-bold transition ${
-                        laminadoCantidad === num
+                        laminadoCantidad === num.toString()
                           ? "bg-stone-900 text-white"
                           : "bg-white text-stone-700 border border-stone-200 hover:bg-stone-100"
                       }`}
@@ -648,7 +671,8 @@ export function ServicesSelector({
                   {money.format(
                     (laminadoTipo === "carta"
                       ? srvLaminadoCarta.precio_actual
-                      : srvLaminadoMedia.precio_actual) * (laminadoCantidad || 1)
+                      : srvLaminadoMedia.precio_actual) *
+                      Math.max(1, parseInt(laminadoCantidad, 10) || 1)
                   )}
                 </div>
               </div>
@@ -656,7 +680,7 @@ export function ServicesSelector({
               <button
                 type="button"
                 onClick={handleAddLaminado}
-                className="flex items-center gap-2 rounded-xl bg-stone-900 px-5 py-3 text-xs font-bold text-white shadow-xs hover:bg-stone-800 active:scale-95 transition"
+                className="flex items-center gap-2 rounded-xl bg-stone-900 px-5 py-3 text-xs font-bold text-white shadow-xs hover:bg-stone-800 active:scale-95 transition cursor-pointer"
               >
                 <PlusIcon className="h-4 w-4" />
                 <span>Agregar al Carrito</span>
@@ -693,9 +717,12 @@ export function ServicesSelector({
                   min="1"
                   step="1"
                   value={encolochadoHojas}
-                  onChange={(e) =>
-                    setEncolochadoHojas(Math.max(1, parseInt(e.target.value) || 1))
-                  }
+                  onChange={(e) => setEncolochadoHojas(e.target.value)}
+                  onBlur={() => {
+                    if (!encolochadoHojas || parseInt(encolochadoHojas, 10) < 1) {
+                      setEncolochadoHojas("1");
+                    }
+                  }}
                   className="w-28 rounded-xl border border-stone-300 bg-white p-2.5 text-center text-lg font-black text-stone-900 outline-none focus:border-stone-600"
                 />
                 <div className="flex flex-wrap gap-1.5">
@@ -703,9 +730,9 @@ export function ServicesSelector({
                     <button
                       key={num}
                       type="button"
-                      onClick={() => setEncolochadoHojas(num)}
+                      onClick={() => setEncolochadoHojas(num.toString())}
                       className={`rounded-lg px-2.5 py-1.5 text-xs font-bold transition ${
-                        encolochadoHojas === num
+                        encolochadoHojas === num.toString()
                           ? "bg-stone-900 text-white"
                           : "bg-white text-stone-700 border border-stone-200 hover:bg-stone-100"
                       }`}
@@ -722,14 +749,17 @@ export function ServicesSelector({
               <div>
                 <span className="text-xs text-stone-500">Subtotal del servicio:</span>
                 <div className="text-xl font-black text-stone-900">
-                  {money.format(srvEncolochado.precio_actual * (encolochadoHojas || 1))}
+                  {money.format(
+                    srvEncolochado.precio_actual *
+                      Math.max(1, parseInt(encolochadoHojas, 10) || 1)
+                  )}
                 </div>
               </div>
 
               <button
                 type="button"
                 onClick={handleAddEncolochado}
-                className="flex items-center gap-2 rounded-xl bg-stone-900 px-5 py-3 text-xs font-bold text-white shadow-xs hover:bg-stone-800 active:scale-95 transition"
+                className="flex items-center gap-2 rounded-xl bg-stone-900 px-5 py-3 text-xs font-bold text-white shadow-xs hover:bg-stone-800 active:scale-95 transition cursor-pointer"
               >
                 <PlusIcon className="h-4 w-4" />
                 <span>Agregar al Carrito</span>
@@ -772,7 +802,7 @@ export function ServicesSelector({
                       setSublimadoDesc(item.desc);
                       setSublimadoPrecioUnitario(item.precio);
                     }}
-                    className="rounded-lg bg-stone-100 px-2.5 py-1.5 text-xs font-medium text-stone-700 hover:bg-stone-200 border border-stone-200 transition"
+                    className="rounded-lg bg-stone-100 px-2.5 py-1.5 text-xs font-medium text-stone-700 hover:bg-stone-200 border border-stone-200 transition cursor-pointer"
                   >
                     {item.desc.split(" ")[0]} ({money.format(parseFloat(item.precio))})
                   </button>
@@ -819,9 +849,12 @@ export function ServicesSelector({
                   min="1"
                   step="1"
                   value={sublimadoCantidad}
-                  onChange={(e) =>
-                    setSublimadoCantidad(Math.max(1, parseInt(e.target.value) || 1))
-                  }
+                  onChange={(e) => setSublimadoCantidad(e.target.value)}
+                  onBlur={() => {
+                    if (!sublimadoCantidad || parseInt(sublimadoCantidad, 10) < 1) {
+                      setSublimadoCantidad("1");
+                    }
+                  }}
                   className="w-full rounded-xl border border-stone-300 bg-white p-2.5 text-sm font-bold text-stone-900 outline-none focus:border-stone-600 text-center"
                 />
               </div>
@@ -834,7 +867,7 @@ export function ServicesSelector({
                 <div className="text-xl font-black text-stone-900">
                   {money.format(
                     (parseFloat(sublimadoPrecioUnitario) || 0) *
-                      (sublimadoCantidad || 1)
+                      Math.max(1, parseInt(sublimadoCantidad, 10) || 1)
                   )}
                 </div>
               </div>
@@ -842,7 +875,7 @@ export function ServicesSelector({
               <button
                 type="button"
                 onClick={handleAddSublimado}
-                className="flex items-center gap-2 rounded-xl bg-stone-900 px-5 py-3 text-xs font-bold text-white shadow-xs hover:bg-stone-800 active:scale-95 transition"
+                className="flex items-center gap-2 rounded-xl bg-stone-900 px-5 py-3 text-xs font-bold text-white shadow-xs hover:bg-stone-800 active:scale-95 transition cursor-pointer"
               >
                 <PlusIcon className="h-4 w-4" />
                 <span>Agregar al Carrito</span>

@@ -1,6 +1,59 @@
-export type ItemVendido = {
-  producto_id: string;
+export type CategoriaServicio =
+  | "fotocopias"
+  | "impresiones"
+  | "laminados"
+  | "encolochados"
+  | "sublimados";
+
+export type TipoPrecioServicio = "fijo" | "por_unidad" | "variable";
+
+export type Servicio = {
+  id: string;
+  codigo: string;
+  categoria: CategoriaServicio;
   nombre: string;
+  descripcion?: string | null;
+  tipo_precio: TipoPrecioServicio;
+  precio_actual: number;
+  version_precio: number;
+  activo: boolean;
+  created_at?: string;
+  updated_at?: string;
+};
+
+export type ServicioHistorialPrecio = {
+  id: string;
+  servicio_id: string;
+  version: number;
+  precio: number;
+  fecha_inicio: string;
+  fecha_fin?: string | null;
+  motivo_cambio?: string | null;
+  created_at?: string;
+};
+
+export type VentaServicioDetalle = {
+  id: string;
+  venta_id: string;
+  servicio_id?: string | null;
+  codigo_servicio: string;
+  nombre_servicio: string;
+  tipo_servicio: string;
+  descripcion_personalizada?: string | null;
+  cantidad: number;
+  precio_unitario_aplicado: number;
+  subtotal: number;
+  version_precio?: number | null;
+  fecha: string;
+};
+
+export type ItemVendido = {
+  tipo?: "producto" | "servicio";
+  producto_id?: string;
+  servicio_id?: string;
+  codigo_servicio?: string;
+  nombre: string;
+  descripcion_personalizada?: string | null;
   cantidad: number;
   precio_unitario: number;
 };
@@ -19,10 +72,25 @@ export type Venta = {
   items_vendidos: ItemVendido[];
 };
 
-export type CartItem = {
+export type CartItemProducto = {
+  tipo: "producto";
+  id: string; // unique item id in cart (producto.id)
   producto: Producto;
   cantidad: number;
 };
+
+export type CartItemServicio = {
+  tipo: "servicio";
+  id: string; // unique item id in cart
+  servicio: Servicio;
+  nombre: string;
+  descripcion_personalizada?: string;
+  cantidad: number;
+  precio_unitario: number;
+  opcion?: string; // e.g. "B&N", "Color", "Carta", "Media Carta"
+};
+
+export type CartItem = CartItemProducto | CartItemServicio;
 
 export type MetodoPago = "efectivo" | "tarjeta" | "transferencia";
 

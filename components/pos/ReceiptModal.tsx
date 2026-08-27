@@ -82,23 +82,31 @@ export function ReceiptModal({
           {/* Items Table */}
           <div className="space-y-1.5 border-b border-dashed border-stone-300 pb-3">
             <div className="flex justify-between font-bold text-stone-500 text-[10px] uppercase">
-              <span>Cant. / Producto</span>
+              <span>Cant. / Concepto</span>
               <span>Total</span>
             </div>
-            {venta.items_vendidos.map((item, idx) => (
-              <div key={idx} className="flex justify-between text-xs items-start gap-2">
-                <div className="flex-1 truncate">
-                  <span className="font-semibold">{item.cantidad}x </span>
-                  <span>{item.nombre}</span>
-                  <div className="text-[10px] text-stone-400">
-                    @{money.format(item.precio_unitario)} c/u
+            {venta.items_vendidos.map((item, idx) => {
+              const isServicio = item.tipo === "servicio" || !item.producto_id;
+              return (
+                <div key={idx} className="flex justify-between text-xs items-start gap-2">
+                  <div className="flex-1">
+                    <span className="font-semibold">{item.cantidad}x </span>
+                    <span>{item.nombre}</span>
+                    {item.descripcion_personalizada && (
+                      <div className="text-[10px] text-stone-600 font-sans italic">
+                        {item.descripcion_personalizada}
+                      </div>
+                    )}
+                    <div className="text-[10px] text-stone-400">
+                      @{money.format(item.precio_unitario)} c/u {isServicio ? "(Servicio)" : ""}
+                    </div>
+                  </div>
+                  <div className="font-semibold whitespace-nowrap">
+                    {money.format(item.precio_unitario * item.cantidad)}
                   </div>
                 </div>
-                <div className="font-semibold whitespace-nowrap">
-                  {money.format(item.precio_unitario * item.cantidad)}
-                </div>
-              </div>
-            ))}
+              );
+            })}
           </div>
 
           {/* Totals & Payment */}

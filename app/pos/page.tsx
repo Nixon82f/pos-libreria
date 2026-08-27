@@ -3,12 +3,20 @@
 import Link from "next/link";
 import { useEffect, useMemo, useState, useCallback } from "react";
 import { createClient } from "@/lib/supabase/client";
-import type { CartItem, MetodoPago, Producto, Venta } from "@/types/database";
+import type {
+  CartItem,
+  CartItemProducto,
+  CartItemServicio,
+  MetodoPago,
+  Producto,
+  Servicio,
+  Venta,
+} from "@/types/database";
 import { ProductList } from "@/components/pos/ProductList";
 import { Cart } from "@/components/pos/Cart";
 import { CheckoutModal } from "@/components/pos/CheckoutModal";
 import { ReceiptModal } from "@/components/pos/ReceiptModal";
-import { RefreshCwIcon } from "@/components/pos/Icons";
+import { RefreshCwIcon, SparklesIcon } from "@/components/pos/Icons";
 
 function toProducto(row: {
   id: string;
@@ -29,6 +37,7 @@ export default function PosPage() {
 
   // Products and inventory state
   const [productos, setProductos] = useState<Producto[]>([]);
+  const [servicios, setServicios] = useState<Servicio[]>([]);
   const [cargando, setCargando] = useState(true);
   const [errorGeneral, setErrorGeneral] = useState<string | null>(null);
 
@@ -47,28 +56,59 @@ export default function PosPage() {
   const [lastMontoRecibido, setLastMontoRecibido] = useState<number>(0);
 
   // Fetch products from Supabase
-  const cargarProductos = useCallback(async () => {
+  const cargarCatalogo = useCallback(async () => {
     setErrorGeneral(null);
-    const { data, error } = await supabase
+
+    // 1. Fetch physical products
+    const { data: dataProd, error: errorProd } = await supabase
       .from("productos")
       .select("id, nombre, precio, stock")
       .order("nombre", { ascending: true });
 
-    if (error) {
-      setErrorGeneral(error.message);
+    if (errorProd) {
+      setErrorGeneral(errorProd.message);
       return;
     }
 
-    const lista = (data ?? []).map(toProducto);
-    setProductos(lista);
+    const listaProd = (dataProd ?? []).map(toProducto);
+    setProductos(listaProd);
 
-    // Synchronize current cart quantities with fresh stock
+    // 2. Fetch services catalog
+    const { data: dataServ, error: errorServ } = await supabase
+      .from("servicios")
+      .select("*")
+      .eq("activo", true)
+      .order("categoria", { ascending: true });
+
+    if (!errorServ && dataServ) {
+      setServicios(
+        dataServ.map((s) => ({
+          id: s.id,
+          codigo: s.codigo,
+          categoria: s.categoria,
+          nombre: s.nombre,
+          descripcion: s.descripcion,
+          tipo_precio: s.tipo_precio,
+          precio_actual: Number(s.precio_actual),
+          version_precio: Number(s.version_precio),
+          activo: Boolean(s.activo),
+          created_at: s.created_at,
+          updated_at: s.updated_at,
+        }))
+      );
+    }
+
+    // Synchronize current cart quantities with fresh stock for products
     setCartItems((prevItems) => {
       return prevItems
         .map((item) => {
-          const freshProd = lista.find((p) => p.id === item.producto.id);
+          if (item.tipo === "servicio") {
+            return item; // Services don't have physical inventory bounds
+          }
+          const freshProd = listaProd.find((p) => p.id === item.producto.id);
           if (!freshProd || freshProd.stock <= 0) return null;
           return {
+            ...item,
             producto: freshProd,
             cantidad: Math.min(item.cantidad, freshProd.stock),
           };
@@ -82,7 +122,7 @@ export default function PosPage() {
 
     async function iniciar() {
       setCargando(true);
-      await cargarProductos();
+      await cargarCatalogo();
       if (activo) setCargando(false);
     }
 
@@ -90,19 +130,28 @@ export default function PosPage() {
     return () => {
       activo = false;
     };
-  }, [cargarProductos]);
+  }, [cargarCatalogo]);
 
   // Cart operations
   const handleAddToCart = useCallback((producto: Producto) => {
     if (producto.stock <= 0) return;
 
     setCartItems((prev) => {
-      const index = prev.findIndex((item) => item.producto.id === producto.id);
+      const index = prev.findIndex(
+        (item) => item.tipo === "producto" && item.producto.id === producto.id
+      );
+
       if (index === -1) {
-        return [...prev, { producto, cantidad: 1 }];
+        const newItem: CartItemProducto = {
+          tipo: "producto",
+          id: `prod-${producto.id}`,
+          producto,
+          cantidad: 1,
+        };
+        return [...prev, newItem];
       }
 
-      const itemExistente = prev[index];
+      const itemExistente = prev[index] as CartItemProducto;
       if (itemExistente.cantidad >= producto.stock) {
         return prev; // Reached maximum available stock
       }
@@ -116,45 +165,51 @@ export default function PosPage() {
     });
   }, []);
 
-  const handleUpdateQuantity = useCallback(
-    (productoId: string, delta: number) => {
-      setCartItems((prev) => {
-        return prev
-          .map((item) => {
-            if (item.producto.id !== productoId) return item;
-            const nuevaCantidad = item.cantidad + delta;
-            if (nuevaCantidad <= 0) return null;
-            if (nuevaCantidad > item.producto.stock) {
-              return { ...item, cantidad: item.producto.stock };
-            }
-            return { ...item, cantidad: nuevaCantidad };
-          })
-          .filter((item): item is CartItem => item !== null);
-      });
+  const handleAddServiceToCart = useCallback(
+    (itemData: Omit<CartItemServicio, "id">) => {
+      const newItem: CartItemServicio = {
+        ...itemData,
+        id: `srv-${Date.now()}-${Math.random().toString(36).slice(2, 7)}`,
+      };
+      setCartItems((prev) => [...prev, newItem]);
     },
     []
   );
 
-  const handleSetQuantity = useCallback(
-    (productoId: string, cantidad: number) => {
-      setCartItems((prev) => {
-        return prev
-          .map((item) => {
-            if (item.producto.id !== productoId) return item;
-            if (cantidad <= 0) return null;
+  const handleUpdateQuantity = useCallback((itemId: string, delta: number) => {
+    setCartItems((prev) => {
+      return prev
+        .map((item) => {
+          if (item.id !== itemId) return item;
+          const nuevaCantidad = item.cantidad + delta;
+          if (nuevaCantidad <= 0) return null;
+          if (item.tipo === "producto" && nuevaCantidad > item.producto.stock) {
+            return { ...item, cantidad: item.producto.stock };
+          }
+          return { ...item, cantidad: nuevaCantidad };
+        })
+        .filter((item): item is CartItem => item !== null);
+    });
+  }, []);
+
+  const handleSetQuantity = useCallback((itemId: string, cantidad: number) => {
+    setCartItems((prev) => {
+      return prev
+        .map((item) => {
+          if (item.id !== itemId) return item;
+          if (cantidad <= 0) return null;
+          if (item.tipo === "producto") {
             const cantidadAjustada = Math.min(cantidad, item.producto.stock);
             return { ...item, cantidad: cantidadAjustada };
-          })
-          .filter((item): item is CartItem => item !== null);
-      });
-    },
-    []
-  );
+          }
+          return { ...item, cantidad };
+        })
+        .filter((item): item is CartItem => item !== null);
+    });
+  }, []);
 
-  const handleRemoveItem = useCallback((productoId: string) => {
-    setCartItems((prev) =>
-      prev.filter((item) => item.producto.id !== productoId)
-    );
+  const handleRemoveItem = useCallback((itemId: string) => {
+    setCartItems((prev) => prev.filter((item) => item.id !== itemId));
   }, []);
 
   const handleClearCart = useCallback(() => {
@@ -165,10 +220,12 @@ export default function PosPage() {
   }, [cartItems.length]);
 
   const totalPagar = useMemo(() => {
-    return cartItems.reduce(
-      (acc, item) => acc + item.producto.precio * item.cantidad,
-      0
-    );
+    return cartItems.reduce((acc, item) => {
+      if (item.tipo === "servicio") {
+        return acc + item.precio_unitario * item.cantidad;
+      }
+      return acc + item.producto.precio * item.cantidad;
+    }, 0);
   }, [cartItems]);
 
   // Sale execution
@@ -182,10 +239,24 @@ export default function PosPage() {
     setCheckoutError(null);
 
     try {
-      const itemsPayload = cartItems.map((item) => ({
-        producto_id: item.producto.id,
-        cantidad: item.cantidad,
-      }));
+      const itemsPayload = cartItems.map((item) => {
+        if (item.tipo === "servicio") {
+          return {
+            tipo: "servicio",
+            servicio_id: item.servicio.id.startsWith("mock-") ? undefined : item.servicio.id,
+            codigo_servicio: item.servicio.codigo,
+            nombre: item.nombre,
+            descripcion_personalizada: item.descripcion_personalizada,
+            cantidad: item.cantidad,
+            precio_unitario: item.precio_unitario,
+          };
+        }
+        return {
+          tipo: "producto",
+          producto_id: item.producto.id,
+          cantidad: item.cantidad,
+        };
+      });
 
       // Call API /api/ventas route which triggers registrar_venta RPC
       const response = await fetch("/api/ventas", {
@@ -209,8 +280,8 @@ export default function PosPage() {
       setIsReceiptOpen(true);
       setCartItems([]);
 
-      // Refresh stock from Supabase
-      await cargarProductos();
+      // Refresh stock and services from Supabase
+      await cargarCatalogo();
     } catch (err: unknown) {
       const mensaje =
         err instanceof Error ? err.message : "Error inesperado al cobrar.";
@@ -251,16 +322,24 @@ export default function PosPage() {
         <div className="flex flex-wrap items-center gap-2.5">
           <button
             type="button"
-            onClick={() => cargarProductos()}
+            onClick={() => cargarCatalogo()}
             disabled={cargando}
-            className="flex items-center gap-1.5 rounded-xl border border-stone-200 bg-white px-3 py-2 text-xs font-medium text-stone-700 shadow-2xs hover:bg-stone-50 active:scale-95 transition disabled:opacity-50"
-            title="Recargar catálogo"
+            className="flex items-center gap-1.5 rounded-xl border border-stone-200 bg-white px-3 py-2 text-xs font-medium text-stone-700 shadow-2xs hover:bg-stone-50 active:scale-95 transition disabled:opacity-50 cursor-pointer"
+            title="Recargar catálogo y tarifas"
           >
             <RefreshCwIcon
               className={`h-3.5 w-3.5 ${cargando ? "animate-spin" : ""}`}
             />
-            <span className="hidden sm:inline">Actualizar stock</span>
+            <span className="hidden sm:inline">Actualizar</span>
           </button>
+
+          <Link
+            href="/servicios"
+            className="flex items-center gap-1 rounded-xl border border-indigo-200 bg-indigo-50/70 px-3.5 py-2 text-xs font-semibold text-indigo-800 shadow-2xs hover:bg-indigo-100 transition"
+          >
+            <SparklesIcon className="h-3.5 w-3.5 text-indigo-600" />
+            <span>Tarifas de Servicios</span>
+          </Link>
 
           <Link
             href="/ventas"
@@ -284,15 +363,17 @@ export default function PosPage() {
         </div>
       )}
 
-      {/* Two column layout: Catalog on left, Cart on right */}
+      {/* Two column layout: Catalog & Services on left, Cart on right */}
       <div className="grid flex-1 grid-cols-1 gap-6 lg:grid-cols-12">
-        {/* Left: Product Search & Catalog */}
+        {/* Left: Product Search & Services Selector */}
         <div className="lg:col-span-7 xl:col-span-8 h-[calc(100vh-12rem)] min-h-[500px]">
           <ProductList
             productos={productos}
+            servicios={servicios}
             cargando={cargando}
             cartItems={cartItems}
             onAddToCart={handleAddToCart}
+            onAddServiceToCart={handleAddServiceToCart}
           />
         </div>
 
@@ -335,3 +416,4 @@ export default function PosPage() {
     </main>
   );
 }
+

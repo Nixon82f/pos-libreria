@@ -1,24 +1,12 @@
--- POS librería de barrio (~200 productos)
--- Ejecutar en el SQL Editor de Supabase.
+-- =============================================================================
+-- MIGRACIÓN: Módulo de Servicios Independientes del Inventario Físico
+-- Ejecutar en el SQL Editor de Supabase
+-- =============================================================================
 
 create extension if not exists pgcrypto;
 
 -- -----------------------------------------------------------------------------
--- 1. productos (Catálogo e Inventario Físico)
--- -----------------------------------------------------------------------------
-create table if not exists public.productos (
-  id uuid primary key default gen_random_uuid(),
-  nombre text not null,
-  precio numeric(10, 2) not null check (precio >= 0),
-  stock integer not null default 0 check (stock >= 0),
-  created_at timestamptz not null default now()
-);
-
-create index if not exists productos_nombre_idx
-  on public.productos using gin (to_tsvector('spanish', nombre));
-
--- -----------------------------------------------------------------------------
--- 2. servicios (Catálogo de Servicios Independientes)
+-- 1. Tabla de Servicios (Catálogo)
 -- -----------------------------------------------------------------------------
 create table if not exists public.servicios (
   id uuid primary key default gen_random_uuid(),
@@ -38,7 +26,7 @@ create index if not exists servicios_categoria_idx on public.servicios (categori
 create index if not exists servicios_codigo_idx on public.servicios (codigo);
 
 -- -----------------------------------------------------------------------------
--- 3. servicios_historial_precios (Versionado de Precios)
+-- 2. Histórico de Precios por Versión
 -- -----------------------------------------------------------------------------
 create table if not exists public.servicios_historial_precios (
   id uuid primary key default gen_random_uuid(),
@@ -55,21 +43,7 @@ create index if not exists servicios_historial_servicio_idx on public.servicios_
 create index if not exists servicios_historial_fecha_idx on public.servicios_historial_precios (fecha_inicio desc);
 
 -- -----------------------------------------------------------------------------
--- 4. ventas
--- -----------------------------------------------------------------------------
-create table if not exists public.ventas (
-  id uuid primary key default gen_random_uuid(),
-  fecha timestamptz not null default now(),
-  total numeric(10, 2) not null check (total >= 0),
-  items_vendidos jsonb not null default '[]'::jsonb,
-  constraint ventas_items_es_arreglo check (jsonb_typeof(items_vendidos) = 'array')
-);
-
-create index if not exists ventas_fecha_idx on public.ventas (fecha desc);
-create index if not exists ventas_items_gin_idx on public.ventas using gin (items_vendidos);
-
--- -----------------------------------------------------------------------------
--- 5. ventas_servicios_detalle (Desglose relacional de servicios vendidos)
+-- 3. Detalle de Ventas para Servicios
 -- -----------------------------------------------------------------------------
 create table if not exists public.ventas_servicios_detalle (
   id uuid primary key default gen_random_uuid(),
@@ -91,36 +65,11 @@ create index if not exists ventas_servicios_servicio_idx on public.ventas_servic
 create index if not exists ventas_servicios_fecha_idx on public.ventas_servicios_detalle (fecha desc);
 
 -- -----------------------------------------------------------------------------
--- 6. movimientos_inventario (Auditoría de Stock de Productos Físicos)
+-- 4. RLS para tablas de servicios
 -- -----------------------------------------------------------------------------
-create table if not exists public.movimientos_inventario (
-  id uuid primary key default gen_random_uuid(),
-  producto_id uuid references public.productos(id) on delete set null,
-  nombre_producto text not null,
-  tipo text not null check (tipo in ('venta', 'ajuste_manual', 'creacion', 'recepcion_stock')),
-  cantidad_cambio integer not null,
-  stock_anterior integer not null,
-  stock_nuevo integer not null,
-  motivo text,
-  fecha timestamptz not null default now()
-);
-
-create index if not exists movimientos_fecha_idx on public.movimientos_inventario (fecha desc);
-create index if not exists movimientos_producto_idx on public.movimientos_inventario (producto_id);
-
--- -----------------------------------------------------------------------------
--- 7. RLS (Row Level Security)
--- -----------------------------------------------------------------------------
-alter table public.productos enable row level security;
 alter table public.servicios enable row level security;
 alter table public.servicios_historial_precios enable row level security;
-alter table public.ventas enable row level security;
 alter table public.ventas_servicios_detalle enable row level security;
-alter table public.movimientos_inventario enable row level security;
-
-create policy "productos_select" on public.productos for select to anon, authenticated using (true);
-create policy "productos_insert" on public.productos for insert to anon, authenticated with check (true);
-create policy "productos_update" on public.productos for update to anon, authenticated using (true) with check (true);
 
 create policy "servicios_select" on public.servicios for select to anon, authenticated using (true);
 create policy "servicios_insert" on public.servicios for insert to anon, authenticated with check (true);
@@ -129,21 +78,13 @@ create policy "servicios_update" on public.servicios for update to anon, authent
 create policy "servicios_historial_select" on public.servicios_historial_precios for select to anon, authenticated using (true);
 create policy "servicios_historial_insert" on public.servicios_historial_precios for insert to anon, authenticated with check (true);
 
-create policy "ventas_select" on public.ventas for select to anon, authenticated using (true);
-create policy "ventas_insert" on public.ventas for insert to anon, authenticated with check (true);
-create policy "ventas_update" on public.ventas for update to anon, authenticated using (true) with check (true);
-create policy "ventas_delete" on public.ventas for delete to anon, authenticated using (true);
-
 create policy "ventas_servicios_select" on public.ventas_servicios_detalle for select to anon, authenticated using (true);
 create policy "ventas_servicios_insert" on public.ventas_servicios_detalle for insert to anon, authenticated with check (true);
 create policy "ventas_servicios_update" on public.ventas_servicios_detalle for update to anon, authenticated using (true) with check (true);
 create policy "ventas_servicios_delete" on public.ventas_servicios_detalle for delete to anon, authenticated using (true);
 
-create policy "movimientos_select" on public.movimientos_inventario for select to anon, authenticated using (true);
-create policy "movimientos_insert" on public.movimientos_inventario for insert to anon, authenticated with check (true);
-
 -- -----------------------------------------------------------------------------
--- 8. Seed inicial de Servicios
+-- 5. Seed inicial de Servicios (Fotocopias, Impresiones, Laminados, Encolochados, Sublimados)
 -- -----------------------------------------------------------------------------
 insert into public.servicios (codigo, categoria, nombre, descripcion, tipo_precio, precio_actual, version_precio, activo)
 values
@@ -157,6 +98,7 @@ values
   ('sublimado_articulo', 'sublimados', 'Artículo Sublimado', 'Personalización de artículos (tazas, playeras, termos, etc.) con precio manual', 'variable', 0.00, 1, true)
 on conflict (codigo) do nothing;
 
+-- Registrar primer versión en el histórico para cada servicio
 insert into public.servicios_historial_precios (servicio_id, version, precio, motivo_cambio)
 select s.id, s.version_precio, s.precio_actual, 'Tarifa inicial del sistema'
 from public.servicios s
@@ -165,62 +107,8 @@ where not exists (
 );
 
 -- -----------------------------------------------------------------------------
--- 9. Triggers y Funciones RPC
+-- 6. Función RPC para actualizar precio de un servicio con versionado
 -- -----------------------------------------------------------------------------
-create or replace function public.auditar_cambio_stock()
-returns trigger
-language plpgsql
-security definer
-set search_path = public
-as $$
-begin
-  if TG_OP = 'INSERT' then
-    insert into public.movimientos_inventario (
-      producto_id,
-      nombre_producto,
-      tipo,
-      cantidad_cambio,
-      stock_anterior,
-      stock_nuevo,
-      motivo
-    ) values (
-      new.id,
-      new.nombre,
-      'creacion',
-      new.stock,
-      0,
-      new.stock,
-      'Producto creado en catálogo'
-    );
-  elsif TG_OP = 'UPDATE' and old.stock is distinct from new.stock then
-    insert into public.movimientos_inventario (
-      producto_id,
-      nombre_producto,
-      tipo,
-      cantidad_cambio,
-      stock_anterior,
-      stock_nuevo,
-      motivo
-    ) values (
-      new.id,
-      new.nombre,
-      case when new.stock < old.stock then 'venta' else 'recepcion_stock' end,
-      new.stock - old.stock,
-      old.stock,
-      new.stock,
-      case when new.stock < old.stock then 'Salida por venta / deducción' else 'Entrada de mercancía / ajuste' end
-    );
-  end if;
-  return new;
-end;
-$$;
-
-drop trigger if exists trigger_auditoria_stock on public.productos;
-create trigger trigger_auditoria_stock
-after insert or update on public.productos
-for each row execute function public.auditar_cambio_stock();
-
--- Actualización de precio de servicio con versionado
 create or replace function public.actualizar_precio_servicio(
   p_servicio_id uuid,
   p_nuevo_precio numeric(10, 2),
@@ -250,10 +138,12 @@ begin
 
   v_nueva_version := v_servicio.version_precio + 1;
 
+  -- Cerrar vigencia de la versión previa
   update public.servicios_historial_precios
   set fecha_fin = now()
   where servicio_id = p_servicio_id and fecha_fin is null;
 
+  -- Insertar nuevo registro en histórico
   insert into public.servicios_historial_precios (
     servicio_id,
     version,
@@ -268,6 +158,7 @@ begin
     p_motivo
   );
 
+  -- Actualizar servicio
   update public.servicios
   set precio_actual = p_nuevo_precio,
       version_precio = v_nueva_version,
@@ -281,7 +172,9 @@ $$;
 
 grant execute on function public.actualizar_precio_servicio(uuid, numeric, text) to anon, authenticated;
 
--- Registrar venta para productos y servicios
+-- -----------------------------------------------------------------------------
+-- 7. Función RPC registrar_venta soportando Productos y Servicios
+-- -----------------------------------------------------------------------------
 create or replace function public.registrar_venta(p_items jsonb)
 returns public.ventas
 language plpgsql
@@ -306,10 +199,12 @@ begin
     raise exception 'La venta debe incluir al menos un artículo o servicio';
   end if;
 
+  -- 1. Crear cabecera temporal de venta para obtener ID
   insert into public.ventas (total, items_vendidos)
   values (0, '[]'::jsonb)
   returning * into v_venta;
 
+  -- 2. Procesar cada ítem
   for v_item in select * from jsonb_array_elements(p_items)
   loop
     v_tipo := coalesce(v_item->>'tipo', case when v_item->>'servicio_id' is not null then 'servicio' else 'producto' end);
@@ -320,6 +215,7 @@ begin
     end if;
 
     if v_tipo = 'servicio' then
+      -- Procesar Servicio
       if v_item->>'servicio_id' is not null then
         select * into v_servicio
         from public.servicios
@@ -333,6 +229,7 @@ begin
       v_nombre := coalesce(v_item->>'nombre', v_servicio.nombre, 'Servicio');
       v_desc_personalizada := v_item->>'descripcion_personalizada';
 
+      -- Si es precio variable (sublimado) o viene precio_unitario explícito, usarlo; sino el configurado
       if v_item->>'precio_unitario' is not null then
         v_precio_unitario := (v_item->>'precio_unitario')::numeric(10, 2);
       elsif v_servicio.id is not null then
@@ -348,6 +245,7 @@ begin
       v_subtotal := v_precio_unitario * v_cantidad;
       v_total := v_total + v_subtotal;
 
+      -- Registrar en tabla de detalle de ventas de servicios
       insert into public.ventas_servicios_detalle (
         venta_id,
         servicio_id,
@@ -372,6 +270,7 @@ begin
         v_servicio.version_precio
       );
 
+      -- Agregar a líneas json
       v_lineas := v_lineas || jsonb_build_array(
         jsonb_build_object(
           'tipo', 'servicio',
@@ -389,6 +288,7 @@ begin
       );
 
     else
+      -- Procesar Producto Físico (con descuento de stock)
       select * into v_producto
       from public.productos
       where id = (v_item->>'producto_id')::uuid
@@ -422,6 +322,7 @@ begin
     end if;
   end loop;
 
+  -- 3. Actualizar venta final con total y líneas completas
   update public.ventas
   set total = v_total,
       items_vendidos = v_lineas

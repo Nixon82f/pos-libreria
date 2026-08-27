@@ -40,8 +40,12 @@ export function DetalleVentaModal({
     if (venta) {
       setItemsEditables(
         venta.items_vendidos.map((it) => ({
+          tipo: it.tipo,
           producto_id: it.producto_id,
+          servicio_id: it.servicio_id,
+          codigo_servicio: it.codigo_servicio,
           nombre: it.nombre,
+          descripcion_personalizada: it.descripcion_personalizada,
           cantidad: it.cantidad,
           precio_unitario: it.precio_unitario,
         }))
@@ -147,8 +151,12 @@ export function DetalleVentaModal({
     setErrorEdicion(null);
 
     const payloadItems: ItemVendido[] = itemsEditables.map((it) => ({
-      producto_id: it.producto_id,
+      tipo: it.tipo,
+      producto_id: it.producto_id || undefined,
+      servicio_id: it.servicio_id || undefined,
+      codigo_servicio: it.codigo_servicio || undefined,
       nombre: it.nombre.trim(),
+      descripcion_personalizada: it.descripcion_personalizada || undefined,
       cantidad: Number(it.cantidad),
       precio_unitario: Number(it.precio_unitario),
     }));
@@ -246,23 +254,31 @@ export function DetalleVentaModal({
                 {/* Products Table */}
                 <div className="space-y-2 border-b border-dashed border-stone-300 pb-3">
                   <div className="flex justify-between font-bold text-stone-500 text-[10px] uppercase">
-                    <span>Cant. / Descripción</span>
+                    <span>Cant. / Concepto</span>
                     <span>Total</span>
                   </div>
-                  {venta.items_vendidos.map((item, idx) => (
-                    <div key={idx} className="flex justify-between items-start gap-2 text-xs">
-                      <div className="flex-1">
-                        <span className="font-semibold text-stone-900">{item.cantidad}x </span>
-                        <span className="text-stone-800">{item.nombre}</span>
-                        <div className="text-[10px] text-stone-400">
-                          @{money.format(item.precio_unitario)} c/u
+                  {venta.items_vendidos.map((item, idx) => {
+                    const isServicio = item.tipo === "servicio" || !item.producto_id;
+                    return (
+                      <div key={idx} className="flex justify-between items-start gap-2 text-xs">
+                        <div className="flex-1">
+                          <span className="font-semibold text-stone-900">{item.cantidad}x </span>
+                          <span className="text-stone-800">{item.nombre}</span>
+                          {item.descripcion_personalizada && (
+                            <div className="text-[10px] text-stone-600 font-sans italic">
+                              {item.descripcion_personalizada}
+                            </div>
+                          )}
+                          <div className="text-[10px] text-stone-400">
+                            @{money.format(item.precio_unitario)} c/u {isServicio ? "(Servicio)" : ""}
+                          </div>
+                        </div>
+                        <div className="font-semibold text-stone-900 whitespace-nowrap">
+                          {money.format(item.precio_unitario * item.cantidad)}
                         </div>
                       </div>
-                      <div className="font-semibold text-stone-900 whitespace-nowrap">
-                        {money.format(item.precio_unitario * item.cantidad)}
-                      </div>
-                    </div>
-                  ))}
+                    );
+                  })}
                 </div>
 
                 {/* Totals */}

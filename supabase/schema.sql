@@ -123,13 +123,16 @@ alter table public.movimientos_inventario enable row level security;
 create policy "productos_select" on public.productos for select to anon, authenticated using (true);
 create policy "productos_insert" on public.productos for insert to anon, authenticated with check (true);
 create policy "productos_update" on public.productos for update to anon, authenticated using (true) with check (true);
+create policy "productos_delete" on public.productos for delete to anon, authenticated using (true);
 
 create policy "servicios_select" on public.servicios for select to anon, authenticated using (true);
 create policy "servicios_insert" on public.servicios for insert to anon, authenticated with check (true);
 create policy "servicios_update" on public.servicios for update to anon, authenticated using (true) with check (true);
+create policy "servicios_delete" on public.servicios for delete to anon, authenticated using (true);
 
 create policy "servicios_historial_select" on public.servicios_historial_precios for select to anon, authenticated using (true);
 create policy "servicios_historial_insert" on public.servicios_historial_precios for insert to anon, authenticated with check (true);
+create policy "servicios_historial_delete" on public.servicios_historial_precios for delete to anon, authenticated using (true);
 
 create policy "ventas_select" on public.ventas for select to anon, authenticated using (true);
 create policy "ventas_insert" on public.ventas for insert to anon, authenticated with check (true);

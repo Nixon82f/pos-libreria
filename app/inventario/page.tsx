@@ -11,7 +11,11 @@ import {
   UtensilsIcon,
   TrashIcon,
 } from "@/components/pos/Icons";
-import { resolveProductCategory, saveLocalProductCategory } from "@/lib/categoryStorage";
+import {
+  resolveProductCategory,
+  saveLocalProductCategory,
+  removeLocalProductCategory,
+} from "@/lib/categoryStorage";
 
 const money = new Intl.NumberFormat("es-MX", {
   style: "currency",
@@ -277,10 +281,29 @@ export default function InventarioPage() {
     setEliminando(true);
     setErrorEliminar(null);
 
-    const { error: delError } = await supabase
+    // 1. Delete on client with .select() to verify deleted count
+    let { data: delData, error: delError } = await supabase
       .from("productos")
       .delete()
-      .eq("id", productoAEliminar.id);
+      .eq("id", productoAEliminar.id)
+      .select("id");
+
+    // 2. If no rows affected (e.g. client RLS restricted), attempt server API route
+    if (!delError && (!delData || delData.length === 0)) {
+      try {
+        const apiRes = await fetch(`/api/productos/${encodeURIComponent(productoAEliminar.id)}`, {
+          method: "DELETE",
+        });
+        const apiJson = await apiRes.json();
+        if (apiJson.error) {
+          delError = { message: apiJson.error, details: "", hint: "", code: "" } as unknown as typeof delError;
+        } else if (apiJson.deleted && apiJson.deleted.length > 0) {
+          delData = apiJson.deleted;
+        }
+      } catch {
+        // ignore
+      }
+    }
 
     setEliminando(false);
 
@@ -299,8 +322,19 @@ export default function InventarioPage() {
       return;
     }
 
+    // If 0 rows were deleted in database, RLS policy is blocking DELETE
+    if (!delData || delData.length === 0) {
+      setErrorEliminar(
+        `Supabase no permitió borrar "${productoAEliminar.nombre}" (0 filas eliminadas en BD). Esto ocurre cuando falta la política de DELETE en Supabase. Por favor ejecuta en el SQL Editor de Supabase la nueva migración o la línea: CREATE POLICY "productos_delete" ON public.productos FOR DELETE TO anon, authenticated USING (true);`
+      );
+      return;
+    }
+
     const eliminadoId = productoAEliminar.id;
     const eliminadoNombre = productoAEliminar.nombre;
+
+    removeLocalProductCategory(eliminadoId);
+    removeLocalProductCategory(eliminadoNombre);
 
     setProductos((actuales) => actuales.filter((p) => p.id !== eliminadoId));
     setAviso(`Se eliminó permanentemente “${eliminadoNombre}”.`);

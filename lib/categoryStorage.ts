@@ -29,6 +29,17 @@ export function saveLocalProductCategory(
   }
 }
 
+export function removeLocalProductCategory(productIdOrName: string) {
+  if (typeof window === "undefined") return;
+  try {
+    const current = getLocalProductCategories();
+    delete current[productIdOrName.toLowerCase().trim()];
+    localStorage.setItem(STORAGE_KEY, JSON.stringify(current));
+  } catch {
+    // ignore
+  }
+}
+
 export function resolveProductCategory(
   dbCategory?: string | null,
   productId?: string,
@@ -48,3 +59,4 @@ export function resolveProductCategory(
 
   return "libreria";
 }
+

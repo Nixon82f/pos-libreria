@@ -1,5 +1,6 @@
 -- =============================================================================
--- Migración: Soporte para Comida/Snacks, Palomitas Dinámicas y Servicio "Otro"
+-- Migración: Soporte para Comida/Snacks, Palomitas Dinámicas, Servicio "Otro"
+--            y Políticas de Eliminación Permanente (DELETE)
 -- =============================================================================
 
 -- 1. Agregar columna 'categoria' a la tabla productos ('libreria' | 'comida')
@@ -33,3 +34,31 @@ on conflict (codigo) do update set
   tipo_precio = excluded.tipo_precio,
   nombre = excluded.nombre,
   descripcion = excluded.descripcion;
+
+-- 4. Habilitar políticas de eliminación (DELETE) en RLS para Supabase
+do $$
+begin
+  if not exists (
+    select 1 from pg_policies 
+    where tablename = 'productos' and policyname = 'productos_delete'
+  ) then
+    create policy "productos_delete" on public.productos 
+    for delete to anon, authenticated using (true);
+  end if;
+
+  if not exists (
+    select 1 from pg_policies 
+    where tablename = 'servicios' and policyname = 'servicios_delete'
+  ) then
+    create policy "servicios_delete" on public.servicios 
+    for delete to anon, authenticated using (true);
+  end if;
+
+  if not exists (
+    select 1 from pg_policies 
+    where tablename = 'servicios_historial_precios' and policyname = 'servicios_historial_delete'
+  ) then
+    create policy "servicios_historial_delete" on public.servicios_historial_precios 
+    for delete to anon, authenticated using (true);
+  end if;
+end $$;

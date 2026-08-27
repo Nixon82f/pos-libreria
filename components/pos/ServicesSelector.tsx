@@ -9,6 +9,7 @@ import {
   LayersIcon,
   TagIcon,
   PlusIcon,
+  PackagePlusIcon,
 } from "./Icons";
 
 const money = new Intl.NumberFormat("es-MX", {
@@ -19,6 +20,7 @@ const money = new Intl.NumberFormat("es-MX", {
 interface ServicesSelectorProps {
   servicios: Servicio[];
   onAddServiceToCart: (item: Omit<CartItemServicio, "id">) => void;
+  onOpenQuickInventory?: () => void;
 }
 
 type TabServicio =
@@ -31,6 +33,7 @@ type TabServicio =
 export function ServicesSelector({
   servicios,
   onAddServiceToCart,
+  onOpenQuickInventory,
 }: ServicesSelectorProps) {
   const [tabActiva, setTabActiva] = useState<TabServicio>("fotocopias");
 

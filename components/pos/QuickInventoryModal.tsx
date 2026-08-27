@@ -21,6 +21,8 @@ interface QuickInventoryModalProps {
   isOpen: boolean;
   onClose: () => void;
   productos: Producto[];
+  initialProduct?: Producto | null;
+  initialTab?: "nuevo" | "sumar_stock";
   onProductCreatedOrUpdated: () => Promise<void>;
 }
 
@@ -30,10 +32,12 @@ export function QuickInventoryModal({
   isOpen,
   onClose,
   productos,
+  initialProduct = null,
+  initialTab = "nuevo",
   onProductCreatedOrUpdated,
 }: QuickInventoryModalProps) {
   const supabase = useMemo(() => createClient(), []);
-  const [tab, setTab] = useState<ModalTab>("nuevo");
+  const [tab, setTab] = useState<ModalTab>(initialTab);
 
   // Form 1: New Product
   const [nombre, setNombre] = useState("");
@@ -42,7 +46,7 @@ export function QuickInventoryModal({
 
   // Form 2: Add Stock to Existing
   const [busquedaProducto, setBusquedaProducto] = useState("");
-  const [productoSeleccionado, setProductoSeleccionado] = useState<Producto | null>(null);
+  const [productoSeleccionado, setProductoSeleccionado] = useState<Producto | null>(initialProduct);
   const [cantidadSumar, setCantidadSumar] = useState("5");
 
   // Status
@@ -59,10 +63,11 @@ export function QuickInventoryModal({
       setPrecio("");
       setStock("10");
       setBusquedaProducto("");
-      setProductoSeleccionado(null);
+      setProductoSeleccionado(initialProduct);
+      setTab(initialProduct ? "sumar_stock" : initialTab);
       setCantidadSumar("5");
     }
-  }, [isOpen]);
+  }, [isOpen, initialProduct, initialTab]);
 
   // Handle escape key
   useEffect(() => {

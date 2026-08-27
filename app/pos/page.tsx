@@ -44,6 +44,12 @@ export default function PosPage() {
 
   // Quick Inventory Modal state
   const [isInventoryModalOpen, setIsInventoryModalOpen] = useState(false);
+  const [selectedProductForInventory, setSelectedProductForInventory] = useState<Producto | null>(null);
+
+  const handleOpenQuickInventory = useCallback((producto?: Producto) => {
+    setSelectedProductForInventory(producto || null);
+    setIsInventoryModalOpen(true);
+  }, []);
 
   // Cart state
   const [cartItems, setCartItems] = useState<CartItem[]>([]);
@@ -58,6 +64,19 @@ export default function PosPage() {
   const [lastSale, setLastSale] = useState<Venta | null>(null);
   const [lastMetodoPago, setLastMetodoPago] = useState<MetodoPago>("efectivo");
   const [lastMontoRecibido, setLastMontoRecibido] = useState<number>(0);
+
+  // Keyboard shortcut listener (Alt+I or F2 to open Quick Inventory)
+  useEffect(() => {
+    function handleGlobalKeyDown(e: KeyboardEvent) {
+      // F2 or Alt+I
+      if (e.key === "F2" || (e.altKey && e.key.toLowerCase() === "i")) {
+        e.preventDefault();
+        handleOpenQuickInventory();
+      }
+    }
+    window.addEventListener("keydown", handleGlobalKeyDown);
+    return () => window.removeEventListener("keydown", handleGlobalKeyDown);
+  }, [handleOpenQuickInventory]);
 
   // Fetch products from Supabase
   const cargarCatalogo = useCallback(async () => {
@@ -388,6 +407,7 @@ export default function PosPage() {
             cartItems={cartItems}
             onAddToCart={handleAddToCart}
             onAddServiceToCart={handleAddServiceToCart}
+            onOpenQuickInventory={handleOpenQuickInventory}
           />
         </div>
 
@@ -411,8 +431,12 @@ export default function PosPage() {
       {/* Quick Inventory Modal */}
       <QuickInventoryModal
         isOpen={isInventoryModalOpen}
-        onClose={() => setIsInventoryModalOpen(false)}
+        onClose={() => {
+          setIsInventoryModalOpen(false);
+          setSelectedProductForInventory(null);
+        }}
         productos={productos}
+        initialProduct={selectedProductForInventory}
         onProductCreatedOrUpdated={cargarCatalogo}
       />
 

@@ -266,7 +266,7 @@ export function ServicesSelector({
   return (
     <div className="flex h-full flex-col bg-white">
       {/* Services Category Tabs */}
-      <div className="flex items-center border-b border-stone-200 bg-stone-50/80 p-2 gap-1.5 overflow-x-auto">
+      <div className="flex items-center border-b border-stone-200 bg-stone-50/80 p-2 gap-1.5 overflow-x-auto shrink-0">
         <button
           type="button"
           onClick={() => setTabActiva("fotocopias")}
@@ -347,7 +347,7 @@ export function ServicesSelector({
       </div>
 
       {/* Main Tab Body */}
-      <div className="flex-1 overflow-y-auto p-5 space-y-6">
+      <div className="flex-1 min-h-[250px] overflow-y-auto p-3.5 sm:p-5 space-y-6">
         {/* ================= 1. FOTOCOPIAS ================= */}
         {tabActiva === "fotocopias" && (
           <div className="max-w-xl mx-auto space-y-5">

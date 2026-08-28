@@ -438,7 +438,7 @@ export default function PosPage() {
       {/* Two column layout: Catalog & Services on left, Cart on right */}
       <div className="grid flex-1 grid-cols-1 gap-6 lg:grid-cols-12">
         {/* Left: Product Search & Services Selector */}
-        <div className="lg:col-span-7 xl:col-span-8 h-[calc(100vh-12rem)] min-h-[500px]">
+        <div className="lg:col-span-7 xl:col-span-8 flex flex-col min-h-[600px] lg:min-h-0 lg:h-[calc(100vh-12rem)]">
           <ProductList
             productos={productos}
             servicios={servicios}
@@ -451,7 +451,7 @@ export default function PosPage() {
         </div>
 
         {/* Right: Cart & Checkout */}
-        <div className="lg:col-span-5 xl:col-span-4 h-[calc(100vh-12rem)] min-h-[500px]">
+        <div className="lg:col-span-5 xl:col-span-4 flex flex-col min-h-[500px] lg:min-h-0 lg:h-[calc(100vh-12rem)]">
           <Cart
             cartItems={cartItems}
             onUpdateQuantity={handleUpdateQuantity}

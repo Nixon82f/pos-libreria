@@ -427,7 +427,7 @@ export function ProductList({
                 Comida & Snacks
               </h2>
               <span className="rounded-full bg-stone-100 px-2 py-0.5 text-[10px] sm:text-xs font-semibold text-stone-600 shrink-0">
-                {productosComida.length} empaquetados
+                {productosComida.length}
               </span>
             </div>
 

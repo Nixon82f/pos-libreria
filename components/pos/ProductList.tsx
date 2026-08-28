@@ -507,30 +507,54 @@ export function ProductList({
 
         {/* Product List Content (Spacious & Scrollable) */}
         <div className="flex-1 min-h-[250px] overflow-y-auto p-3 sm:p-5 space-y-3.5">
-          {/* Fast Order Widget: Palomitas de Maíz (Compact sober flat bar) */}
+          {/* Fast Order Card: Palomitas de Maíz (Clean, Structured & Formal) */}
           {(!busquedaComida ||
             busquedaComida.toLowerCase().includes("palo") ||
             busquedaComida.toLowerCase().includes("maiz")) && (
-            <div className="rounded-xl border border-stone-200 bg-stone-50/90 p-2 sm:p-2.5 shadow-2xs transition-all shrink-0">
-              <div className="flex items-center justify-between gap-2 flex-wrap sm:flex-nowrap">
-                <div className="flex items-center gap-1.5 min-w-0">
-                  <span className="flex h-6 w-6 items-center justify-center rounded-lg bg-stone-900 text-white text-xs shrink-0">
-                    🍿
-                  </span>
-                  <span className="text-xs font-bold text-stone-900 truncate">Palomitas</span>
-                  <span className="rounded bg-stone-200 px-1.5 py-0.2 text-[10px] font-bold text-stone-800 shrink-0">
-                    ${palomitasPrecio}
-                  </span>
+            <div className="rounded-xl border border-stone-200 bg-stone-50/70 p-3 sm:p-3.5 space-y-2.5 shrink-0 transition-all">
+              {/* Row 1: Header and Adjustments link */}
+              <div className="flex items-center justify-between gap-2">
+                <div className="flex items-center gap-2 min-w-0">
+                  <div className="flex h-6 w-6 items-center justify-center rounded-md bg-stone-900 text-white shrink-0">
+                    <UtensilsIcon className="h-3.5 w-3.5" />
+                  </div>
+                  <div className="flex items-center gap-1.5 min-w-0">
+                    <h3 className="text-xs font-bold text-stone-900 truncate">
+                      Palomitas de Maíz
+                    </h3>
+                    <span className="rounded bg-stone-200/70 px-1.5 py-0.5 text-[10px] font-semibold text-stone-600 shrink-0">
+                      Preparadas
+                    </span>
+                  </div>
                 </div>
 
-                {/* Quick Price Buttons */}
-                <div className="flex items-center gap-1 overflow-x-auto no-scrollbar py-0.5 shrink min-w-0">
+                <button
+                  type="button"
+                  onClick={() => setPalomitasColapsadas(!palomitasColapsadas)}
+                  className="flex items-center gap-1 text-[11px] font-medium text-stone-600 hover:text-stone-900 transition cursor-pointer shrink-0"
+                >
+                  <span>{palomitasColapsadas ? "Ocultar ajustes" : "Ajustar precio / cant."}</span>
+                  {palomitasColapsadas ? (
+                    <ChevronUpIcon className="h-3 w-3" />
+                  ) : (
+                    <ChevronDownIcon className="h-3 w-3" />
+                  )}
+                </button>
+              </div>
+
+              {/* Row 2: Price Presets & Direct Add Button */}
+              <div className="flex flex-col sm:flex-row items-stretch sm:items-center justify-between gap-2 pt-0.5">
+                {/* Price Presets */}
+                <div className="flex items-center gap-1.5 overflow-x-auto no-scrollbar py-0.5">
+                  <span className="text-[11px] font-medium text-stone-500 shrink-0 mr-0.5">
+                    Precio:
+                  </span>
                   {["10", "15", "20", "25", "30", "35"].map((val) => (
                     <button
                       key={val}
                       type="button"
                       onClick={() => setPalomitasPrecio(val)}
-                      className={`rounded-lg px-2 py-0.5 text-[11px] font-semibold transition cursor-pointer shrink-0 ${
+                      className={`rounded-lg px-2.5 py-1 text-xs font-semibold transition cursor-pointer shrink-0 ${
                         palomitasPrecio === val
                           ? "bg-stone-900 text-white shadow-xs"
                           : "bg-white text-stone-700 border border-stone-200 hover:bg-stone-100"
@@ -541,66 +565,61 @@ export function ProductList({
                   ))}
                 </div>
 
-                {/* Fast Add & Expand Controls */}
-                <div className="flex items-center gap-1.5 ml-auto sm:ml-0 shrink-0">
-                  <button
-                    type="button"
-                    onClick={handleAddPalomitas}
-                    className="flex items-center gap-1 rounded-xl bg-stone-900 hover:bg-stone-800 text-white px-2.5 py-1.2 text-xs font-bold shadow-xs active:scale-95 transition cursor-pointer"
-                  >
-                    <PlusIcon className="h-3 w-3" />
-                    <span>
-                      Añadir ({money.format((parseFloat(palomitasPrecio) || 0) * (parseInt(palomitasCantidad, 10) || 1))})
-                    </span>
-                  </button>
-
-                  <button
-                    type="button"
-                    onClick={() => setPalomitasColapsadas(!palomitasColapsadas)}
-                    className="p-1 rounded-lg text-stone-500 hover:text-stone-900 hover:bg-stone-200 transition cursor-pointer"
-                    title={palomitasColapsadas ? "Cerrar ajustes" : "Ajustar cantidad / precio libre"}
-                  >
-                    {palomitasColapsadas ? (
-                      <ChevronUpIcon className="h-3.5 w-3.5" />
-                    ) : (
-                      <ChevronDownIcon className="h-3.5 w-3.5" />
+                {/* Direct Add Button */}
+                <button
+                  type="button"
+                  onClick={handleAddPalomitas}
+                  className="flex items-center justify-center gap-1.5 rounded-lg bg-stone-900 hover:bg-stone-800 text-white px-3.5 py-1.5 text-xs font-semibold shadow-xs active:scale-95 transition cursor-pointer shrink-0"
+                >
+                  <PlusIcon className="h-3.5 w-3.5" />
+                  <span>
+                    Añadir {palomitasCantidad !== "1" ? `(${palomitasCantidad}x)` : ""} (
+                    {money.format(
+                      (parseFloat(palomitasPrecio) || 0) *
+                        (parseInt(palomitasCantidad, 10) || 1)
                     )}
-                  </button>
-                </div>
+                    )
+                  </span>
+                </button>
               </div>
 
-              {/* Collapsible custom quantity & custom price */}
+              {/* Row 3 (Collapsible): Custom price and custom portion inputs */}
               {palomitasColapsadas && (
-                <div className="mt-2 pt-2 border-t border-stone-200 flex items-center justify-between gap-3 flex-wrap text-xs">
+                <div className="mt-2 pt-2.5 border-t border-stone-200 grid grid-cols-1 sm:grid-cols-2 gap-3 text-xs">
                   <div className="flex items-center gap-2">
-                    <span className="text-[11px] font-medium text-stone-600">Precio libre:</span>
+                    <span className="text-[11px] font-medium text-stone-600 shrink-0">
+                      Precio personalizado ($):
+                    </span>
                     <input
                       type="number"
                       min="0"
                       step="1"
                       value={palomitasPrecio}
                       onChange={(e) => setPalomitasPrecio(e.target.value)}
-                      className="w-16 rounded-lg border border-stone-300 bg-white px-2 py-1 text-xs font-bold text-stone-900 outline-none focus:border-stone-600"
+                      className="w-20 rounded-lg border border-stone-300 bg-white px-2.5 py-1 text-xs font-semibold text-stone-900 outline-none focus:border-stone-600"
+                      placeholder="0.00"
                     />
                   </div>
 
                   <div className="flex items-center gap-2">
-                    <span className="text-[11px] font-medium text-stone-600">Porciones:</span>
+                    <span className="text-[11px] font-medium text-stone-600 shrink-0">
+                      Porciones:
+                    </span>
                     <input
                       type="number"
                       min="1"
                       step="1"
                       value={palomitasCantidad}
                       onChange={(e) => setPalomitasCantidad(e.target.value)}
-                      className="w-12 rounded-lg border border-stone-300 bg-white px-2 py-1 text-xs font-bold text-stone-900 text-center outline-none focus:border-stone-600"
+                      className="w-14 rounded-lg border border-stone-300 bg-white px-2 py-1 text-xs font-semibold text-stone-900 text-center outline-none focus:border-stone-600"
                     />
                     <div className="flex gap-1">
-                      {[1, 2, 3].map((n) => (
+                      {[1, 2, 3, 4].map((n) => (
                         <button
                           key={n}
                           type="button"
                           onClick={() => setPalomitasCantidad(n.toString())}
-                          className={`rounded px-2 py-0.5 text-[11px] font-medium transition ${
+                          className={`rounded-md px-2 py-1 text-[11px] font-medium transition cursor-pointer ${
                             palomitasCantidad === n.toString()
                               ? "bg-stone-900 text-white"
                               : "bg-white text-stone-700 border border-stone-200 hover:bg-stone-100"

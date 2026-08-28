@@ -38,7 +38,7 @@ function toProducto(row: {
   };
 }
 
-type TabFiltroInventario = "todos" | "libreria" | "comida";
+type TabFiltroInventario = "todos" | "libreria" | "comida" | "bajo_stock" | "agotados";
 
 export default function InventarioPage() {
   const supabase = useMemo(() => createClient(), []);
@@ -353,6 +353,8 @@ export default function InventarioPage() {
 
       if (tabFiltro === "libreria") return p.categoria !== "comida";
       if (tabFiltro === "comida") return p.categoria === "comida";
+      if (tabFiltro === "bajo_stock") return p.stock < 5;
+      if (tabFiltro === "agotados") return p.stock === 0;
 
       return true;
     });
@@ -533,12 +535,12 @@ export default function InventarioPage() {
           <div className="flex items-center gap-3">
             <h2 className="text-lg font-semibold text-stone-900">Listado de artículos</h2>
 
-            {/* Category Tab Filter */}
-            <div className="flex items-center rounded-xl bg-stone-100 p-1 text-xs font-semibold">
+            {/* Category and Stock Tab Filter */}
+            <div className="flex items-center rounded-xl bg-stone-100 p-1 text-xs font-semibold overflow-x-auto no-scrollbar gap-0.5">
               <button
                 type="button"
                 onClick={() => setTabFiltro("todos")}
-                className={`rounded-lg px-2.5 py-1 transition cursor-pointer ${
+                className={`rounded-lg px-2.5 py-1 transition cursor-pointer whitespace-nowrap ${
                   tabFiltro === "todos"
                     ? "bg-white text-stone-900 shadow-xs"
                     : "text-stone-600 hover:text-stone-900"
@@ -549,7 +551,7 @@ export default function InventarioPage() {
               <button
                 type="button"
                 onClick={() => setTabFiltro("libreria")}
-                className={`rounded-lg px-2.5 py-1 transition cursor-pointer ${
+                className={`rounded-lg px-2.5 py-1 transition cursor-pointer whitespace-nowrap ${
                   tabFiltro === "libreria"
                     ? "bg-white text-stone-900 shadow-xs"
                     : "text-stone-600 hover:text-stone-900"
@@ -560,13 +562,35 @@ export default function InventarioPage() {
               <button
                 type="button"
                 onClick={() => setTabFiltro("comida")}
-                className={`rounded-lg px-2.5 py-1 transition cursor-pointer ${
+                className={`rounded-lg px-2.5 py-1 transition cursor-pointer whitespace-nowrap ${
                   tabFiltro === "comida"
                     ? "bg-white text-stone-900 shadow-xs"
                     : "text-stone-600 hover:text-stone-900"
                 }`}
               >
-                Comida & Snacks ({productos.filter((p) => p.categoria === "comida").length})
+                Comida ({productos.filter((p) => p.categoria === "comida").length})
+              </button>
+              <button
+                type="button"
+                onClick={() => setTabFiltro("bajo_stock")}
+                className={`rounded-lg px-2.5 py-1 transition cursor-pointer whitespace-nowrap ${
+                  tabFiltro === "bajo_stock"
+                    ? "bg-white text-stone-900 shadow-xs font-bold"
+                    : "text-stone-600 hover:text-stone-900"
+                }`}
+              >
+                Bajo stock (&lt;5) ({productos.filter((p) => p.stock < 5).length})
+              </button>
+              <button
+                type="button"
+                onClick={() => setTabFiltro("agotados")}
+                className={`rounded-lg px-2.5 py-1 transition cursor-pointer whitespace-nowrap ${
+                  tabFiltro === "agotados"
+                    ? "bg-white text-stone-900 shadow-xs font-bold"
+                    : "text-stone-600 hover:text-stone-900"
+                }`}
+              >
+                Agotados ({productos.filter((p) => p.stock === 0).length})
               </button>
             </div>
           </div>
@@ -600,14 +624,23 @@ export default function InventarioPage() {
           <p className="p-8 text-center text-sm text-stone-500">Cargando catálogo…</p>
         ) : productosFiltrados.length === 0 ? (
           <div className="p-8 text-center text-stone-500">
-            <p className="text-sm font-medium">No se encontraron productos.</p>
-            {busqueda && (
+            <p className="text-sm font-medium">
+              {tabFiltro === "bajo_stock"
+                ? "No hay productos con bajo stock (< 5 unidades)."
+                : tabFiltro === "agotados"
+                ? "No hay productos agotados."
+                : "No se encontraron productos."}
+            </p>
+            {(busqueda || tabFiltro !== "todos") && (
               <button
                 type="button"
-                onClick={() => setBusqueda("")}
-                className="mt-2 text-xs font-semibold text-stone-900 underline"
+                onClick={() => {
+                  setBusqueda("");
+                  setTabFiltro("todos");
+                }}
+                className="mt-2 text-xs font-semibold text-stone-900 underline cursor-pointer"
               >
-                Limpiar búsqueda
+                Mostrar todos los productos
               </button>
             )}
           </div>

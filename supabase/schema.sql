@@ -11,7 +11,7 @@ create table if not exists public.productos (
   nombre text not null,
   precio numeric(10, 2) not null check (precio >= 0),
   stock integer not null default 0 check (stock >= 0),
-  categoria text not null default 'libreria' check (categoria in ('libreria', 'comida')),
+  categoria text not null default 'libreria' check (categoria in ('libreria', 'comida', 'variedades')),
   created_at timestamptz not null default now()
 );
 
@@ -188,9 +188,9 @@ values
   ('fotocopia_color', 'fotocopias', 'Fotocopia Color', 'Fotocopia a color (por página)', 'por_unidad', 5.00, 1, true),
   ('impresion_bn', 'impresiones', 'Impresión B&N', 'Impresión en blanco y negro (por página)', 'por_unidad', 2.00, 1, true),
   ('impresion_color', 'impresiones', 'Impresión Color', 'Impresión a color (por página)', 'por_unidad', 6.00, 1, true),
-  ('laminado_carta', 'laminados', 'Laminado Carta', 'Mica térmica tamaño Carta', 'fijo', 15.00, 1, true),
-  ('laminado_media_carta', 'laminados', 'Laminado Media Carta', 'Mica térmica tamaño Media Carta / Credencial', 'fijo', 10.00, 1, true),
-  ('encolochado_hoja', 'encolochados', 'Encolochado por Hoja', 'Encuadernación con espiral (costo calculado por hoja)', 'por_unidad', 0.50, 1, true),
+  ('laminado_carta', 'laminados', 'Laminado Carta', 'Mica térmica tamaño Carta con tarifa variable', 'variable', 15.00, 1, true),
+  ('laminado_media_carta', 'laminados', 'Laminado Media Carta', 'Mica térmica tamaño Media Carta / Credencial con tarifa variable', 'variable', 10.00, 1, true),
+  ('encolochado_hoja', 'encolochados', 'Encolochado de Documento', 'Encuadernación con espiral / resorte con precio variable en caja', 'variable', 25.00, 1, true),
   ('sublimado_articulo', 'sublimados', 'Artículo Sublimado', 'Personalización de artículos (tazas, playeras, termos, etc.) con precio manual', 'variable', 0.00, 1, true)
 on conflict (codigo) do nothing;
 

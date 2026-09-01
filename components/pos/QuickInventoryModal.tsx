@@ -12,6 +12,7 @@ import {
   CheckCircleIcon,
   PackagePlusIcon,
   UtensilsIcon,
+  SparklesIcon,
 } from "./Icons";
 
 const money = new Intl.NumberFormat("es-MX", {
@@ -308,31 +309,44 @@ export function QuickInventoryModal({
               <label className="block text-xs font-bold text-stone-700 mb-1.5">
                 Categoría del Producto
               </label>
-              <div className="grid grid-cols-2 gap-2">
+              <div className="grid grid-cols-3 gap-2">
                 <button
                   type="button"
                   onClick={() => setCategoria("libreria")}
-                  className={`flex items-center justify-center gap-2 rounded-xl p-2.5 text-xs font-bold border transition cursor-pointer ${
+                  className={`flex items-center justify-center gap-1.5 rounded-xl p-2.5 text-xs font-bold border transition cursor-pointer ${
                     categoria === "libreria"
                       ? "border-stone-900 bg-stone-900 text-white shadow-xs"
                       : "border-stone-200 bg-white text-stone-700 hover:bg-stone-50"
                   }`}
                 >
-                  <BookOpenIcon className="h-4 w-4" />
-                  <span>Librería & Útiles</span>
+                  <BookOpenIcon className="h-4 w-4 shrink-0" />
+                  <span className="truncate">Librería</span>
                 </button>
 
                 <button
                   type="button"
                   onClick={() => setCategoria("comida")}
-                  className={`flex items-center justify-center gap-2 rounded-xl p-2.5 text-xs font-bold border transition cursor-pointer ${
+                  className={`flex items-center justify-center gap-1.5 rounded-xl p-2.5 text-xs font-bold border transition cursor-pointer ${
                     categoria === "comida"
                       ? "border-stone-900 bg-stone-900 text-white shadow-xs"
                       : "border-stone-200 bg-white text-stone-700 hover:bg-stone-50"
                   }`}
                 >
-                  <UtensilsIcon className="h-4 w-4" />
-                  <span>Comida & Snacks</span>
+                  <UtensilsIcon className="h-4 w-4 shrink-0" />
+                  <span className="truncate">Comida</span>
+                </button>
+
+                <button
+                  type="button"
+                  onClick={() => setCategoria("variedades")}
+                  className={`flex items-center justify-center gap-1.5 rounded-xl p-2.5 text-xs font-bold border transition cursor-pointer ${
+                    categoria === "variedades"
+                      ? "border-stone-900 bg-stone-900 text-white shadow-xs"
+                      : "border-stone-200 bg-white text-stone-700 hover:bg-stone-50"
+                  }`}
+                >
+                  <SparklesIcon className="h-4 w-4 shrink-0" />
+                  <span className="truncate">Variedades</span>
                 </button>
               </div>
             </div>
@@ -340,7 +354,13 @@ export function QuickInventoryModal({
             {/* Quick Templates */}
             <div className="space-y-1.5">
               <label className="block text-[11px] font-semibold text-stone-500">
-                Sugerencias rápidas ({categoria === "comida" ? "Snacks" : "Papelería"}):
+                Sugerencias rápidas (
+                {categoria === "comida"
+                  ? "Snacks"
+                  : categoria === "variedades"
+                  ? "Variedades"
+                  : "Papelería"}
+                ):
               </label>
               <div className="flex flex-wrap gap-1.5">
                 {(categoria === "comida"
@@ -350,6 +370,15 @@ export function QuickInventoryModal({
                       { nom: "Agua Embotellada 500ml", pre: "12.00" },
                       { nom: "Papas Fritas", pre: "17.00" },
                       { nom: "Galletas de Chocolate", pre: "16.00" },
+                    ]
+                  : categoria === "variedades"
+                  ? [
+                      { nom: "Bolsa de Regalo Grande", pre: "25.00" },
+                      { nom: "Papel de Regalo", pre: "10.00" },
+                      { nom: "Moño para Regalo", pre: "8.00" },
+                      { nom: "Calculadora de Bolsillo", pre: "45.00" },
+                      { nom: "Juguete Novedad", pre: "35.00" },
+                      { nom: "Llavero / Accesorio", pre: "20.00" },
                     ]
                   : [
                       { nom: "Cuaderno Profesional", pre: "28.00" },
@@ -387,6 +416,8 @@ export function QuickInventoryModal({
                 placeholder={
                   categoria === "comida"
                     ? "Ej. Palomitas con mantequilla, Coca Cola 600ml, Jugo..."
+                    : categoria === "variedades"
+                    ? "Ej. Bolsa de regalo mediana, Moño decorativo, Juguete..."
                     : "Ej. Cuaderno rayado 100 hojas, Lapicero negro..."
                 }
                 className="w-full rounded-xl border border-stone-300 bg-white p-2.5 text-xs text-stone-900 outline-none focus:border-stone-600"

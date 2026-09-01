@@ -197,9 +197,9 @@ export default function CierrePage() {
             desgloseServicios.fotocopias += itemSubtotal;
           } else if (cod.includes("impresion") || nom.includes("impresión") || nom.includes("impresion")) {
             desgloseServicios.impresiones += itemSubtotal;
-          } else if (cod.includes("laminado") || nom.includes("laminado") || nom.includes("enmicado")) {
+          } else if (cod.includes("laminado") || nom.includes("laminado") || nom.includes("enmicado") || nom.includes("emplasticad") || nom.includes("plastificad")) {
             desgloseServicios.laminados += itemSubtotal;
-          } else if (cod.includes("encolochado") || nom.includes("encolochado") || nom.includes("espiral")) {
+          } else if (cod.includes("encolochado") || nom.includes("encolochado") || nom.includes("espiral") || nom.includes("anillad")) {
             desgloseServicios.encolochados += itemSubtotal;
           } else if (cod.includes("sublimad") || nom.includes("sublimad") || nom.includes("taza") || nom.includes("playera")) {
             desgloseServicios.sublimados += itemSubtotal;

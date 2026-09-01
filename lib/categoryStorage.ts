@@ -1,11 +1,13 @@
+import type { CategoriaProducto } from "@/types/database";
+
 /**
- * Helper to persist and retrieve product categories ('libreria' | 'comida')
+ * Helper to persist and retrieve product categories ('libreria' | 'comida' | 'variedades')
  * seamlessly across client-side and Supabase.
  */
 
 const STORAGE_KEY = "pos_product_categories_cache";
 
-export function getLocalProductCategories(): Record<string, "libreria" | "comida"> {
+export function getLocalProductCategories(): Record<string, CategoriaProducto> {
   if (typeof window === "undefined") return {};
   try {
     const raw = localStorage.getItem(STORAGE_KEY);
@@ -17,7 +19,7 @@ export function getLocalProductCategories(): Record<string, "libreria" | "comida
 
 export function saveLocalProductCategory(
   productIdOrName: string,
-  categoria: "libreria" | "comida"
+  categoria: CategoriaProducto
 ) {
   if (typeof window === "undefined") return;
   try {
@@ -44,8 +46,12 @@ export function resolveProductCategory(
   dbCategory?: string | null,
   productId?: string,
   productName?: string
-): "libreria" | "comida" {
-  if (dbCategory === "comida" || dbCategory === "libreria") {
+): CategoriaProducto {
+  if (
+    dbCategory === "comida" ||
+    dbCategory === "libreria" ||
+    dbCategory === "variedades"
+  ) {
     return dbCategory;
   }
 

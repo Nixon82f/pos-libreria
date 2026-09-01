@@ -9,6 +9,7 @@ import {
   XMarkIcon,
   BookOpenIcon,
   UtensilsIcon,
+  SparklesIcon,
   TrashIcon,
 } from "@/components/pos/Icons";
 import {
@@ -38,7 +39,7 @@ function toProducto(row: {
   };
 }
 
-type TabFiltroInventario = "todos" | "libreria" | "comida" | "bajo_stock" | "agotados";
+type TabFiltroInventario = "todos" | "libreria" | "comida" | "variedades" | "bajo_stock" | "agotados";
 
 export default function InventarioPage() {
   const supabase = useMemo(() => createClient(), []);
@@ -351,8 +352,9 @@ export default function InventarioPage() {
       const matchSearch = !q || p.nombre.toLowerCase().includes(q);
       if (!matchSearch) return false;
 
-      if (tabFiltro === "libreria") return p.categoria !== "comida";
+      if (tabFiltro === "libreria") return p.categoria === "libreria" || (!p.categoria && p.categoria !== "comida" && p.categoria !== "variedades");
       if (tabFiltro === "comida") return p.categoria === "comida";
+      if (tabFiltro === "variedades") return p.categoria === "variedades";
       if (tabFiltro === "bajo_stock") return p.stock < 5;
       if (tabFiltro === "agotados") return p.stock === 0;
 
@@ -444,7 +446,7 @@ export default function InventarioPage() {
           </div>
 
           {/* Quick Category Toggle */}
-          <div className="flex items-center rounded-xl bg-stone-100 p-1">
+          <div className="flex items-center rounded-xl bg-stone-100 p-1 gap-1">
             <button
               type="button"
               onClick={() => setCategoria("libreria")}
@@ -469,6 +471,18 @@ export default function InventarioPage() {
               <UtensilsIcon className="h-3.5 w-3.5" />
               <span>Comida & Snacks</span>
             </button>
+            <button
+              type="button"
+              onClick={() => setCategoria("variedades")}
+              className={`flex items-center gap-1.5 rounded-lg px-3 py-1.5 text-xs font-bold transition cursor-pointer ${
+                categoria === "variedades"
+                  ? "bg-white text-stone-900 shadow-xs"
+                  : "text-stone-600 hover:text-stone-900"
+              }`}
+            >
+              <SparklesIcon className="h-3.5 w-3.5" />
+              <span>Variedades</span>
+            </button>
           </div>
         </div>
 
@@ -485,6 +499,8 @@ export default function InventarioPage() {
               placeholder={
                 categoria === "comida"
                   ? "Ej. Refresco 600ml, Agua 500ml, Papas..."
+                  : categoria === "variedades"
+                  ? "Ej. Bolsa de regalo, Moño decorativo, Juguete..."
                   : "Ej. Cuaderno rayado 100h, Lapicero azul..."
               }
               className="w-full rounded-xl border border-stone-300 px-3 py-2 text-sm outline-none focus:border-stone-500"
@@ -557,7 +573,7 @@ export default function InventarioPage() {
                     : "text-stone-600 hover:text-stone-900"
                 }`}
               >
-                Librería ({productos.filter((p) => p.categoria !== "comida").length})
+                Librería ({productos.filter((p) => p.categoria === "libreria" || (!p.categoria && p.categoria !== "comida" && p.categoria !== "variedades")).length})
               </button>
               <button
                 type="button"
@@ -569,6 +585,17 @@ export default function InventarioPage() {
                 }`}
               >
                 Comida ({productos.filter((p) => p.categoria === "comida").length})
+              </button>
+              <button
+                type="button"
+                onClick={() => setTabFiltro("variedades")}
+                className={`rounded-lg px-2.5 py-1 transition cursor-pointer whitespace-nowrap ${
+                  tabFiltro === "variedades"
+                    ? "bg-white text-stone-900 shadow-xs"
+                    : "text-stone-600 hover:text-stone-900"
+                }`}
+              >
+                Variedades ({productos.filter((p) => p.categoria === "variedades").length})
               </button>
               <button
                 type="button"
@@ -659,6 +686,7 @@ export default function InventarioPage() {
               <tbody className="divide-y divide-stone-100">
                 {productosFiltrados.map((p) => {
                   const esComida = p.categoria === "comida";
+                  const esVariedades = p.categoria === "variedades";
 
                   return (
                     <tr key={p.id} className="hover:bg-stone-50/70 transition">
@@ -669,6 +697,11 @@ export default function InventarioPage() {
                             <>
                               <UtensilsIcon className="h-3.5 w-3.5 text-stone-500" />
                               <span>Comida / Snacks</span>
+                            </>
+                          ) : esVariedades ? (
+                            <>
+                              <SparklesIcon className="h-3.5 w-3.5 text-stone-500" />
+                              <span>Variedades</span>
                             </>
                           ) : (
                             <>
@@ -758,7 +791,7 @@ export default function InventarioPage() {
                 <label className="block text-xs font-bold text-stone-700 mb-1">
                   Categoría
                 </label>
-                <div className="grid grid-cols-2 gap-2">
+                <div className="grid grid-cols-3 gap-2">
                   <button
                     type="button"
                     onClick={() => setEditCategoria("libreria")}
@@ -768,8 +801,8 @@ export default function InventarioPage() {
                         : "border-stone-200 bg-white text-stone-700 hover:bg-stone-50"
                     }`}
                   >
-                    <BookOpenIcon className="h-3.5 w-3.5" />
-                    <span>Librería</span>
+                    <BookOpenIcon className="h-3.5 w-3.5 shrink-0" />
+                    <span className="truncate">Librería</span>
                   </button>
                   <button
                     type="button"
@@ -780,8 +813,20 @@ export default function InventarioPage() {
                         : "border-stone-200 bg-white text-stone-700 hover:bg-stone-50"
                     }`}
                   >
-                    <UtensilsIcon className="h-3.5 w-3.5" />
-                    <span>Comida & Snacks</span>
+                    <UtensilsIcon className="h-3.5 w-3.5 shrink-0" />
+                    <span className="truncate">Comida</span>
+                  </button>
+                  <button
+                    type="button"
+                    onClick={() => setEditCategoria("variedades")}
+                    className={`flex items-center justify-center gap-1.5 rounded-xl p-2 text-xs font-bold border transition cursor-pointer ${
+                      editCategoria === "variedades"
+                        ? "border-stone-900 bg-stone-900 text-white"
+                        : "border-stone-200 bg-white text-stone-700 hover:bg-stone-50"
+                    }`}
+                  >
+                    <SparklesIcon className="h-3.5 w-3.5 shrink-0" />
+                    <span className="truncate">Variedades</span>
                   </button>
                 </div>
               </div>

@@ -51,11 +51,15 @@ export function ServicesSelector({
   const [impresionPaginas, setImpresionPaginas] = useState<string>("1");
   const [impresionColorPrecioPorPagina, setImpresionColorPrecioPorPagina] = useState<string>("6.00");
 
-  // State 3: Encolochados
-  const [encolochadoHojas, setEncolochadoHojas] = useState<string>("20");
+  // State 3: Encolochados (Variable price)
+  const [encolochadoPrecio, setEncolochadoPrecio] = useState<string>("25.00");
+  const [encolochadoHojas, setEncolochadoHojas] = useState<string>("50");
+  const [encolochadoCantidad, setEncolochadoCantidad] = useState<string>("1");
+  const [encolochadoDetalle, setEncolochadoDetalle] = useState<string>("");
 
-  // State 4: Laminados
-  const [laminadoTipo, setLaminadoTipo] = useState<"carta" | "media_carta">("carta");
+  // State 4: Laminados & Emplasticados (Variable price)
+  const [laminadoTipo, setLaminadoTipo] = useState<"carta" | "media_carta" | "oficio" | "doble_carta" | "otro">("carta");
+  const [laminadoPrecioUnitario, setLaminadoPrecioUnitario] = useState<string>("15.00");
   const [laminadoCantidad, setLaminadoCantidad] = useState<string>("1");
 
   // State 5: Sublimados
@@ -115,9 +119,9 @@ export function ServicesSelector({
     id: "mock-enc",
     codigo: "encolochado_hoja",
     categoria: "encolochados",
-    nombre: "Encolochado por Hoja",
-    tipo_precio: "por_unidad",
-    precio_actual: 0.5,
+    nombre: "Encolochado de Documento",
+    tipo_precio: "variable",
+    precio_actual: 25.0,
     version_precio: 1,
     activo: true,
   };
@@ -127,7 +131,7 @@ export function ServicesSelector({
     codigo: "laminado_carta",
     categoria: "laminados",
     nombre: "Laminado Carta",
-    tipo_precio: "fijo",
+    tipo_precio: "variable",
     precio_actual: 15.0,
     version_precio: 1,
     activo: true,
@@ -137,7 +141,7 @@ export function ServicesSelector({
     codigo: "laminado_media_carta",
     categoria: "laminados",
     nombre: "Laminado Media Carta",
-    tipo_precio: "fijo",
+    tipo_precio: "variable",
     precio_actual: 10.0,
     version_precio: 1,
     activo: true,
@@ -205,30 +209,49 @@ export function ServicesSelector({
   };
 
   const handleAddEncolochado = () => {
-    const hojas = Math.max(1, parseInt(encolochadoHojas, 10) || 1);
+    const precioUnitario = Math.max(0, parseFloat(encolochadoPrecio) || 0);
+    const cant = Math.max(1, parseInt(encolochadoCantidad, 10) || 1);
+    const hojas = parseInt(encolochadoHojas, 10) || 0;
+    const detalle = encolochadoDetalle.trim()
+      ? encolochadoDetalle.trim()
+      : hojas > 0
+      ? `Encolochado (~${hojas} hojas)`
+      : "Encolochado de documento";
+
     onAddServiceToCart({
       tipo: "servicio",
       servicio: srvEncolochado,
       nombre: "Encolochado de Documento",
-      descripcion_personalizada: `${hojas} hojas`,
-      cantidad: hojas,
-      precio_unitario: srvEncolochado.precio_actual,
+      descripcion_personalizada: `${cant} unidad(es) - ${detalle} ($${precioUnitario}/u)`,
+      cantidad: cant,
+      precio_unitario: precioUnitario,
+      opcion: "Variable",
     });
   };
 
   const handleAddLaminado = () => {
-    const srv = laminadoTipo === "carta" ? srvLaminadoCarta : srvLaminadoMedia;
+    const srv = laminadoTipo === "media_carta" ? srvLaminadoMedia : srvLaminadoCarta;
     const cant = Math.max(1, parseInt(laminadoCantidad, 10) || 1);
-    const tamano = laminadoTipo === "carta" ? "Carta" : "Media Carta";
+    const precioUnitario = Math.max(0, parseFloat(laminadoPrecioUnitario) || 0);
+    const formatoLabel =
+      laminadoTipo === "carta"
+        ? "Carta"
+        : laminadoTipo === "media_carta"
+        ? "Media Carta / Carné"
+        : laminadoTipo === "oficio"
+        ? "Oficio"
+        : laminadoTipo === "doble_carta"
+        ? "Doble Carta"
+        : "Personalizado";
 
     onAddServiceToCart({
       tipo: "servicio",
       servicio: srv,
-      nombre: srv.nombre,
-      descripcion_personalizada: `${cant} unidad(es) - Formato ${tamano}`,
+      nombre: "Laminado / Emplasticado",
+      descripcion_personalizada: `${cant} unidad(es) - Formato ${formatoLabel} ($${precioUnitario}/u)`,
       cantidad: cant,
-      precio_unitario: srv.precio_actual,
-      opcion: tamano,
+      precio_unitario: precioUnitario,
+      opcion: formatoLabel,
     });
   };
 
@@ -672,65 +695,90 @@ export function ServicesSelector({
           </div>
         )}
 
-        {/* ================= 3. LAMINADOS ================= */}
+        {/* ================= 3. LAMINADOS / EMPLASTICADOS ================= */}
         {tabActiva === "laminados" && (
           <div className="max-w-xl mx-auto space-y-5">
             <div className="flex items-center justify-between">
               <div>
                 <h3 className="text-base font-bold text-stone-900">
-                  Servicio de Laminado / Enmicado
+                  Laminado / Emplasticado
                 </h3>
                 <p className="text-xs text-stone-500">
-                  Protección térmica para carnés, diplomas y documentos.
+                  Protección térmica para credenciales, carnés, diplomas y documentos con precio variable en caja.
                 </p>
               </div>
+              <span className="rounded-full bg-stone-100 px-2.5 py-1 text-xs font-bold text-stone-700 border border-stone-200">
+                Tarifa Variable
+              </span>
             </div>
 
             {/* Format Selection */}
-            <div className="grid grid-cols-2 gap-3">
-              <button
-                type="button"
-                onClick={() => setLaminadoTipo("carta")}
-                className={`p-4 rounded-xl border text-left transition-all ${
-                  laminadoTipo === "carta"
-                    ? "border-stone-900 bg-stone-50 ring-1 ring-stone-900/10"
-                    : "border-stone-200 bg-white hover:border-stone-300"
-                }`}
-              >
-                <div className="flex items-center justify-between mb-1">
-                  <span className="text-xs font-bold uppercase text-stone-700">
-                    Tamaño Carta
-                  </span>
-                  <span className="font-extrabold text-sm text-stone-900">
-                    {money.format(srvLaminadoCarta.precio_actual)}
-                  </span>
-                </div>
-                <p className="text-xs text-stone-500">
-                  Diplomas, certificados, hojas carta.
-                </p>
-              </button>
+            <div className="grid grid-cols-2 sm:grid-cols-3 gap-2.5">
+              {[
+                { id: "carta" as const, label: "Carta", def: "15.00", desc: "Diplomas, certificados, hojas" },
+                { id: "media_carta" as const, label: "Media Carta / Carné", def: "10.00", desc: "Credenciales, tarjetas" },
+                { id: "oficio" as const, label: "Oficio", def: "20.00", desc: "Hojas tamaño oficio" },
+                { id: "doble_carta" as const, label: "Doble Carta / A3", def: "30.00", desc: "Planos, carteles" },
+                { id: "otro" as const, label: "Personalizado", def: "15.00", desc: "Formato a la medida" },
+              ].map((fmt) => (
+                <button
+                  key={fmt.id}
+                  type="button"
+                  onClick={() => {
+                    setLaminadoTipo(fmt.id);
+                    if (fmt.id !== "otro") {
+                      setLaminadoPrecioUnitario(fmt.def);
+                    }
+                  }}
+                  className={`p-3 rounded-xl border text-left transition-all cursor-pointer ${
+                    laminadoTipo === fmt.id
+                      ? "border-stone-900 bg-stone-50 ring-1 ring-stone-900/10 shadow-2xs"
+                      : "border-stone-200 bg-white hover:border-stone-300"
+                  }`}
+                >
+                  <div className="flex items-center justify-between mb-0.5">
+                    <span className="text-xs font-bold text-stone-800">
+                      {fmt.label}
+                    </span>
+                  </div>
+                  <p className="text-[11px] text-stone-500 line-clamp-1">
+                    {fmt.desc}
+                  </p>
+                </button>
+              ))}
+            </div>
 
-              <button
-                type="button"
-                onClick={() => setLaminadoTipo("media_carta")}
-                className={`p-4 rounded-xl border text-left transition-all ${
-                  laminadoTipo === "media_carta"
-                    ? "border-stone-900 bg-stone-50 ring-1 ring-stone-900/10"
-                    : "border-stone-200 bg-white hover:border-stone-300"
-                }`}
-              >
-                <div className="flex items-center justify-between mb-1">
-                  <span className="text-xs font-bold uppercase text-stone-700">
-                    Media Carta / Carné
-                  </span>
-                  <span className="font-extrabold text-sm text-stone-900">
-                    {money.format(srvLaminadoMedia.precio_actual)}
-                  </span>
+            {/* Variable Unit Price Input */}
+            <div className="rounded-xl border border-stone-200 bg-stone-50/50 p-4 space-y-2">
+              <label className="block text-xs font-bold text-stone-700">
+                Precio Unitario del Laminado / Emplasticado ($)
+              </label>
+              <div className="flex items-center gap-3">
+                <input
+                  type="number"
+                  step="0.50"
+                  min="0"
+                  value={laminadoPrecioUnitario}
+                  onChange={(e) => setLaminadoPrecioUnitario(e.target.value)}
+                  className="w-28 rounded-xl border border-stone-300 bg-white p-2.5 text-center text-lg font-bold text-stone-900 outline-none focus:border-stone-600"
+                />
+                <div className="flex flex-wrap gap-1.5">
+                  {["10.00", "15.00", "20.00", "25.00", "30.00", "40.00"].map((p) => (
+                    <button
+                      key={p}
+                      type="button"
+                      onClick={() => setLaminadoPrecioUnitario(p)}
+                      className={`rounded-lg px-2.5 py-1.5 text-xs font-medium transition cursor-pointer ${
+                        laminadoPrecioUnitario === p
+                          ? "bg-stone-900 text-white"
+                          : "bg-white text-stone-700 border border-stone-200 hover:bg-stone-100"
+                      }`}
+                    >
+                      ${p}
+                    </button>
+                  ))}
                 </div>
-                <p className="text-xs text-stone-500">
-                  Tarjetas, credenciales, gafetes.
-                </p>
-              </button>
+              </div>
             </div>
 
             {/* Quantity */}
@@ -752,13 +800,13 @@ export function ServicesSelector({
                   }}
                   className="w-28 rounded-xl border border-stone-300 bg-white p-2.5 text-center text-lg font-black text-stone-900 outline-none focus:border-stone-600"
                 />
-                <div className="flex gap-1.5">
+                <div className="flex flex-wrap gap-1.5">
                   {[1, 2, 3, 5, 10].map((num) => (
                     <button
                       key={num}
                       type="button"
                       onClick={() => setLaminadoCantidad(num.toString())}
-                      className={`rounded-lg px-2.5 py-1.5 text-xs font-bold transition ${
+                      className={`rounded-lg px-2.5 py-1.5 text-xs font-bold transition cursor-pointer ${
                         laminadoCantidad === num.toString()
                           ? "bg-stone-900 text-white"
                           : "bg-white text-stone-700 border border-stone-200 hover:bg-stone-100"
@@ -777,9 +825,7 @@ export function ServicesSelector({
                 <span className="text-xs text-stone-500">Subtotal del servicio:</span>
                 <div className="text-xl font-black text-stone-900">
                   {money.format(
-                    (laminadoTipo === "carta"
-                      ? srvLaminadoCarta.precio_actual
-                      : srvLaminadoMedia.precio_actual) *
+                    Math.max(0, parseFloat(laminadoPrecioUnitario) || 0) *
                       Math.max(1, parseInt(laminadoCantidad, 10) || 1)
                   )}
                 </div>
@@ -806,19 +852,60 @@ export function ServicesSelector({
                   Encolochado de Documentos
                 </h3>
                 <p className="text-xs text-stone-500">
-                  Encuadernación con resorte plástico y pastas transparentes.
+                  Encuadernación con resorte plástico y pastas con precio variable en caja.
                 </p>
               </div>
-              <span className="rounded-full bg-stone-100 px-3 py-1 text-xs font-bold text-stone-800 border border-stone-200">
-                Tarifa: {money.format(srvEncolochado.precio_actual)} / hoja
+              <span className="rounded-full bg-stone-100 px-2.5 py-1 text-xs font-bold text-stone-700 border border-stone-200">
+                Tarifa Variable
               </span>
             </div>
 
-            {/* Sheet Count */}
-            <div className="rounded-xl border border-stone-200 bg-stone-50/50 p-4 space-y-3">
+            {/* Variable Price Input with quick suggestion buttons */}
+            <div className="rounded-xl border border-stone-200 bg-stone-50/50 p-4 space-y-2">
               <label className="block text-xs font-bold text-stone-700">
-                Total de Hojas del Cuaderno / Documento
+                Precio del Encolochado ($)
               </label>
+              <div className="flex items-center gap-3">
+                <input
+                  type="number"
+                  step="1.00"
+                  min="0"
+                  value={encolochadoPrecio}
+                  onChange={(e) => setEncolochadoPrecio(e.target.value)}
+                  className="w-28 rounded-xl border border-stone-300 bg-white p-2.5 text-center text-lg font-bold text-stone-900 outline-none focus:border-stone-600"
+                />
+                <div className="flex flex-wrap gap-1.5">
+                  {[
+                    { label: "$15 (Chico)", val: "15.00" },
+                    { label: "$25 (Mediano)", val: "25.00" },
+                    { label: "$35 (Grande)", val: "35.00" },
+                    { label: "$50 (Extra)", val: "50.00" },
+                    { label: "$75", val: "75.00" },
+                  ].map((p) => (
+                    <button
+                      key={p.val}
+                      type="button"
+                      onClick={() => setEncolochadoPrecio(p.val)}
+                      className={`rounded-lg px-2.5 py-1.5 text-xs font-medium transition cursor-pointer ${
+                        encolochadoPrecio === p.val
+                          ? "bg-stone-900 text-white"
+                          : "bg-white text-stone-700 border border-stone-200 hover:bg-stone-100"
+                      }`}
+                    >
+                      {p.label}
+                    </button>
+                  ))}
+                </div>
+              </div>
+            </div>
+
+            {/* Sheet Count or Custom description */}
+            <div className="rounded-xl border border-stone-200 bg-stone-50/50 p-4 space-y-3">
+              <div className="flex items-center justify-between">
+                <label className="block text-xs font-bold text-stone-700">
+                  Hojas aproximadas / Detalles del cuaderno
+                </label>
+              </div>
               <div className="flex items-center gap-3">
                 <input
                   type="number"
@@ -839,13 +926,61 @@ export function ServicesSelector({
                       key={num}
                       type="button"
                       onClick={() => setEncolochadoHojas(num.toString())}
-                      className={`rounded-lg px-2.5 py-1.5 text-xs font-bold transition ${
+                      className={`rounded-lg px-2.5 py-1.5 text-xs font-bold transition cursor-pointer ${
                         encolochadoHojas === num.toString()
                           ? "bg-stone-900 text-white"
                           : "bg-white text-stone-700 border border-stone-200 hover:bg-stone-100"
                       }`}
                     >
                       {num} h.
+                    </button>
+                  ))}
+                </div>
+              </div>
+
+              <div>
+                <input
+                  type="text"
+                  value={encolochadoDetalle}
+                  onChange={(e) => setEncolochadoDetalle(e.target.value)}
+                  placeholder="Nota opcional (ej. Resorte negro 1/2 pulgada, pasta azul...)"
+                  className="w-full rounded-xl border border-stone-300 bg-white p-2 text-xs text-stone-900 outline-none focus:border-stone-600"
+                />
+              </div>
+            </div>
+
+            {/* Quantity */}
+            <div className="rounded-xl border border-stone-200 bg-stone-50/50 p-4 space-y-2">
+              <label className="block text-xs font-bold text-stone-700">
+                Cantidad de Encolochados
+              </label>
+              <div className="flex items-center gap-3">
+                <input
+                  type="number"
+                  min="1"
+                  step="1"
+                  value={encolochadoCantidad}
+                  onChange={(e) => setEncolochadoCantidad(e.target.value)}
+                  onBlur={() => {
+                    if (!encolochadoCantidad || parseInt(encolochadoCantidad, 10) < 1) {
+                      setEncolochadoCantidad("1");
+                    }
+                  }}
+                  className="w-28 rounded-xl border border-stone-300 bg-white p-2.5 text-center text-lg font-black text-stone-900 outline-none focus:border-stone-600"
+                />
+                <div className="flex flex-wrap gap-1.5">
+                  {[1, 2, 3, 5, 10].map((num) => (
+                    <button
+                      key={num}
+                      type="button"
+                      onClick={() => setEncolochadoCantidad(num.toString())}
+                      className={`rounded-lg px-2.5 py-1.5 text-xs font-bold transition cursor-pointer ${
+                        encolochadoCantidad === num.toString()
+                          ? "bg-stone-900 text-white"
+                          : "bg-white text-stone-700 border border-stone-200 hover:bg-stone-100"
+                      }`}
+                    >
+                      {num}
                     </button>
                   ))}
                 </div>
@@ -858,8 +993,8 @@ export function ServicesSelector({
                 <span className="text-xs text-stone-500">Subtotal del servicio:</span>
                 <div className="text-xl font-black text-stone-900">
                   {money.format(
-                    srvEncolochado.precio_actual *
-                      Math.max(1, parseInt(encolochadoHojas, 10) || 1)
+                    Math.max(0, parseFloat(encolochadoPrecio) || 0) *
+                      Math.max(1, parseInt(encolochadoCantidad, 10) || 1)
                   )}
                 </div>
               </div>

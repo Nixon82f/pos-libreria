@@ -246,8 +246,6 @@ export default function ServiciosPage() {
     const grupos: Record<string, Servicio[]> = {
       fotocopias: [],
       impresiones: [],
-      laminados: [],
-      encolochados: [],
     };
 
     for (const s of servicios) {
@@ -255,6 +253,9 @@ export default function ServiciosPage() {
       if (
         s.codigo === "fotocopia_color" ||
         s.codigo === "impresion_color" ||
+        s.codigo === "laminado_carta" ||
+        s.codigo === "laminado_media_carta" ||
+        s.codigo === "encolochado_hoja" ||
         s.codigo === "sublimado_articulo" ||
         s.codigo === "servicio_otro" ||
         s.tipo_precio === "variable"
@@ -379,8 +380,6 @@ export default function ServiciosPage() {
             [
               "fotocopias",
               "impresiones",
-              "laminados",
-              "encolochados",
             ] as CategoriaServicio[]
           ).map((catKey) => {
             const conf = CATEGORIAS_CONFIG[catKey];
@@ -498,7 +497,7 @@ export default function ServiciosPage() {
               </h3>
             </div>
             <p className="text-xs text-stone-600 leading-relaxed">
-              Las <strong>Fotocopias a Color</strong>, <strong>Impresiones a Color</strong>, <strong>Artículos Sublimados</strong> y <strong>Servicios Extra (Otro)</strong> no tienen una tarifa fija estricta de catálogo porque varían según la cobertura de tinta, tipo de papel o el trabajo a realizar. Sus precios se cotizan y editan directamente al momento de cobrar en la pestaña de servicios del Punto de Venta (POS).
+              Las <strong>Fotocopias a Color</strong>, <strong>Impresiones a Color</strong>, <strong>Laminados / Emplasticados</strong>, <strong>Encolochados</strong>, <strong>Artículos Sublimados</strong> y <strong>Servicios Extra (Otro)</strong> no tienen una tarifa fija estricta de catálogo porque varían según la cobertura de tinta, tipo de papel, formato de mica o el trabajo específico a realizar. Sus precios se cotizan y editan libremente al momento de cobrar en la pestaña de servicios del Punto de Venta (POS).
             </p>
           </section>
         </div>

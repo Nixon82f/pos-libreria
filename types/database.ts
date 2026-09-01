@@ -73,8 +73,8 @@ export const DEFAULT_SERVICIOS: Servicio[] = [
     codigo: "laminado_carta",
     categoria: "laminados",
     nombre: "Laminado Carta",
-    descripcion: "Enmicado térmico protector tamaño carta.",
-    tipo_precio: "fijo",
+    descripcion: "Enmicado térmico protector tamaño carta con tarifa variable.",
+    tipo_precio: "variable",
     precio_actual: 15.0,
     version_precio: 1,
     activo: true,
@@ -84,8 +84,8 @@ export const DEFAULT_SERVICIOS: Servicio[] = [
     codigo: "laminado_media_carta",
     categoria: "laminados",
     nombre: "Laminado Media Carta",
-    descripcion: "Enmicado térmico para credenciales o media carta.",
-    tipo_precio: "fijo",
+    descripcion: "Enmicado térmico para credenciales o media carta con tarifa variable.",
+    tipo_precio: "variable",
     precio_actual: 10.0,
     version_precio: 1,
     activo: true,
@@ -94,10 +94,10 @@ export const DEFAULT_SERVICIOS: Servicio[] = [
     id: "mock-enc",
     codigo: "encolochado_hoja",
     categoria: "encolochados",
-    nombre: "Encolochado por Hoja",
-    descripcion: "Encuadernación con resorte plástico (precio por hoja).",
-    tipo_precio: "por_unidad",
-    precio_actual: 0.5,
+    nombre: "Encolochado de Documento",
+    descripcion: "Encuadernación con resorte plástico con precio variable en caja.",
+    tipo_precio: "variable",
+    precio_actual: 25.0,
     version_precio: 1,
     activo: true,
   },
@@ -173,7 +173,7 @@ export type ItemVendido = {
   precio_unitario: number;
 };
 
-export type CategoriaProducto = "libreria" | "comida";
+export type CategoriaProducto = "libreria" | "comida" | "variedades";
 
 export type Producto = {
   id: string;

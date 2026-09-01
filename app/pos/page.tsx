@@ -490,6 +490,10 @@ export default function PosPage() {
             onAddRecargaToCart={handleAddRecargaToCart}
             onOpenQuickInventory={handleOpenQuickInventory}
             onOpenBolsasModal={() => setIsBolsasModalOpen(true)}
+            onBolsasUpdated={(nuevas) => {
+              setBolsas(nuevas);
+              saveLocalBolsas(nuevas);
+            }}
           />
         </div>
 

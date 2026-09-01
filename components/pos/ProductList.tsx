@@ -41,6 +41,7 @@ interface ProductListProps {
   onAddRecargaToCart?: (item: Omit<CartItemRecarga, "id">) => void;
   onOpenQuickInventory?: (producto?: Producto) => void;
   onOpenBolsasModal?: () => void;
+  onBolsasUpdated?: (nuevasBolsas: RecargaBolsa[]) => void;
 }
 
 type MainTab = "libreria" | "comida" | "variedades" | "recargas" | "servicios";
@@ -57,6 +58,7 @@ export function ProductList({
   onAddRecargaToCart,
   onOpenQuickInventory,
   onOpenBolsasModal,
+  onBolsasUpdated,
 }: ProductListProps) {
   const [mainTab, setMainTab] = useState<MainTab>("libreria");
   
@@ -1067,6 +1069,7 @@ export function ProductList({
             bolsas={bolsas}
             onAddRecargaToCart={onAddRecargaToCart}
             onOpenBolsasModal={onOpenBolsasModal}
+            onBolsasUpdated={onBolsasUpdated}
           />
         )}
       </div>

@@ -1,13 +1,19 @@
 "use client";
 
-import { useState } from "react";
+import { useState, useMemo } from "react";
+import { createClient } from "@/lib/supabase/client";
 import type { OperadorRecarga, RecargaBolsa, CartItemRecarga } from "@/types/database";
 import {
   SmartphoneIcon,
   PlusIcon,
   WalletIcon,
   AlertTriangleIcon,
+  PencilIcon,
+  CheckCircleIcon,
+  XMarkIcon,
+  RefreshCwIcon,
 } from "@/components/pos/Icons";
+import { saveLocalBolsas, addLocalRecargaMovimiento } from "@/lib/recargasStorage";
 
 const money = new Intl.NumberFormat("es-NI", {
   style: "currency",
@@ -19,19 +25,33 @@ interface RecargasSelectorProps {
   bolsas: RecargaBolsa[];
   onAddRecargaToCart: (item: Omit<CartItemRecarga, "id">) => void;
   onOpenBolsasModal: () => void;
+  onBolsasUpdated?: (nuevasBolsas: RecargaBolsa[]) => void;
 }
 
 export function RecargasSelector({
   bolsas,
   onAddRecargaToCart,
   onOpenBolsasModal,
+  onBolsasUpdated,
 }: RecargasSelectorProps) {
+  const supabase = useMemo(() => createClient(), []);
+
   // Selection state
   const [operador, setOperador] = useState<OperadorRecarga>("tigo");
   const [telefono, setTelefono] = useState<string>("");
   const [montoRecarga, setMontoRecarga] = useState<string>("50");
   const [comision, setComision] = useState<string>("5");
   const [errorLocal, setErrorLocal] = useState<string | null>(null);
+
+  // Inline Quick Edit Balance State
+  const [isEditingSaldos, setIsEditingSaldos] = useState<boolean>(false);
+  const [modoEdicionSaldo, setModoEdicionSaldo] = useState<"fijar" | "sumar">("fijar");
+  const [nuevoSaldoTigo, setNuevoSaldoTigo] = useState<string>("");
+  const [nuevoSaldoClaro, setNuevoSaldoClaro] = useState<string>("");
+  const [pagoEfectivoCaja, setPagoEfectivoCaja] = useState<boolean>(true);
+  const [guardandoSaldos, setGuardandoSaldos] = useState<boolean>(false);
+  const [avisoExitoEdicion, setAvisoExitoEdicion] = useState<string | null>(null);
+  const [errorEdicion, setErrorEdicion] = useState<string | null>(null);
 
   const bolsaTigo = bolsas.find((b) => b.operador === "tigo") || {
     id: "tigo",
@@ -55,8 +75,110 @@ export function RecargasSelector({
   const totalCobro = montoNum + comisionNum;
   const saldoInsuficiente = montoNum > saldoDisponible;
 
+  const handleOpenEditSaldos = (op?: OperadorRecarga) => {
+    setErrorEdicion(null);
+    setAvisoExitoEdicion(null);
+    setModoEdicionSaldo("fijar");
+    setNuevoSaldoTigo(bolsaTigo.saldo_actual.toString());
+    setNuevoSaldoClaro(bolsaClaro.saldo_actual.toString());
+    if (op) {
+      setOperador(op);
+    }
+    setIsEditingSaldos(true);
+  };
+
+  const handleGuardarSaldos = async (operadorEspecifico?: OperadorRecarga) => {
+    setGuardandoSaldos(true);
+    setErrorEdicion(null);
+    setAvisoExitoEdicion(null);
+
+    const operadoresAActualizar: OperadorRecarga[] = operadorEspecifico
+      ? [operadorEspecifico]
+      : ["tigo", "claro"];
+
+    try {
+      const nuevasBolsas = [...bolsas];
+
+      for (const op of operadoresAActualizar) {
+        const valStr = op === "tigo" ? nuevoSaldoTigo : nuevoSaldoClaro;
+        const valNum = parseFloat(valStr);
+
+        if (isNaN(valNum) || valNum < 0) {
+          continue; // Skip if empty or invalid
+        }
+
+        const idx = nuevasBolsas.findIndex((b) => b.operador === op);
+        const saldoAnterior = idx >= 0 ? nuevasBolsas[idx].saldo_actual : 0;
+        let saldoNuevo = valNum;
+        let tipoRpc: "apertura_saldo" | "compra_saldo" = "apertura_saldo";
+
+        if (modoEdicionSaldo === "sumar") {
+          tipoRpc = "compra_saldo";
+          saldoNuevo = saldoAnterior + valNum;
+        }
+
+        // 1. Try Supabase RPC
+        const { error } = await supabase.rpc("gestionar_saldo_bolsa", {
+          p_operador: op,
+          p_tipo: tipoRpc,
+          p_monto: valNum,
+          p_pago_con_efectivo_caja: modoEdicionSaldo === "sumar" ? pagoEfectivoCaja : false,
+          p_notas: modoEdicionSaldo === "sumar" ? "Compra rápida desde POS" : "Ajuste de saldo desde POS",
+        });
+
+        // 2. Update local state
+        if (idx >= 0) {
+          nuevasBolsas[idx] = {
+            ...nuevasBolsas[idx],
+            saldo_actual: saldoNuevo,
+          };
+        } else {
+          nuevasBolsas.push({
+            id: `local-${op}`,
+            operador: op,
+            nombre_display: op === "tigo" ? "Tigo" : "Claro",
+            saldo_actual: saldoNuevo,
+            color_hex: op === "tigo" ? "#00377B" : "#DA291C",
+          });
+        }
+
+        // Record movement locally if RPC failed
+        if (error) {
+          addLocalRecargaMovimiento({
+            id: `mov-${Date.now()}-${Math.random().toString(36).slice(2, 6)}`,
+            operador: op,
+            tipo: tipoRpc,
+            monto_saldo: valNum,
+            comision: 0,
+            total_cobrado_cliente: 0,
+            pago_con_efectivo_caja: modoEdicionSaldo === "sumar" ? pagoEfectivoCaja : false,
+            saldo_anterior: saldoAnterior,
+            saldo_nuevo: saldoNuevo,
+            notas: "Ajuste directo desde POS",
+            fecha: new Date().toISOString(),
+          });
+        }
+      }
+
+      saveLocalBolsas(nuevasBolsas);
+      if (onBolsasUpdated) {
+        onBolsasUpdated(nuevasBolsas);
+      }
+
+      setAvisoExitoEdicion("¡Saldos actualizados correctamente!");
+      setTimeout(() => {
+        setIsEditingSaldos(false);
+        setAvisoExitoEdicion(null);
+      }, 1200);
+    } catch (err: unknown) {
+      const msg = err instanceof Error ? err.message : "Error al actualizar saldo";
+      setErrorEdicion(msg);
+    } finally {
+      setGuardandoSaldos(false);
+    }
+  };
+
   const handleTelefonoChange = (val: string) => {
-    // Keep only numbers and max 8 digits
     const clean = val.replace(/\D/g, "").slice(0, 8);
     setTelefono(clean);
   };
@@ -72,7 +194,7 @@ export function RecargasSelector({
 
     if (saldoInsuficiente) {
       setErrorLocal(
-        `Saldo insuficiente en ${operador.toUpperCase()} (Disponible: ${money.format(saldoDisponible)}). Recarga saldo a la bolsa primero.`
+        `Saldo insuficiente en ${operador.toUpperCase()} (Disponible: ${money.format(saldoDisponible)}). Ajusta o recarga el saldo primero.`
       );
       return;
     }
@@ -97,13 +219,12 @@ export function RecargasSelector({
       descripcion_personalizada: desc,
     });
 
-    // Reset phone for next customer, keep amounts
     setTelefono("");
   };
 
   return (
     <div className="flex flex-col h-full bg-white rounded-2xl border border-stone-200 shadow-xs overflow-hidden">
-      {/* Top Banner with Balances & Manage Button */}
+      {/* Top Banner with Balances & Quick Edit Buttons */}
       <div className="bg-stone-900 text-white p-3.5 sm:p-4 flex flex-wrap items-center justify-between gap-3">
         <div className="flex items-center gap-3">
           <div className="flex h-9 w-9 items-center justify-center rounded-xl bg-white/10 text-white">
@@ -119,8 +240,9 @@ export function RecargasSelector({
           </div>
         </div>
 
-        {/* Live Balance Floats */}
-        <div className="flex items-center gap-2">
+        {/* Live Balance Floats and Edit Buttons */}
+        <div className="flex items-center flex-wrap gap-2">
+          {/* Tigo Pill */}
           <button
             type="button"
             onClick={() => setOperador("tigo")}
@@ -134,6 +256,7 @@ export function RecargasSelector({
             <span>{money.format(bolsaTigo.saldo_actual)}</span>
           </button>
 
+          {/* Claro Pill */}
           <button
             type="button"
             onClick={() => setOperador("claro")}
@@ -147,30 +270,242 @@ export function RecargasSelector({
             <span>{money.format(bolsaClaro.saldo_actual)}</span>
           </button>
 
+          {/* Direct Edit Button right in the tab */}
+          <button
+            type="button"
+            onClick={() => (isEditingSaldos ? setIsEditingSaldos(false) : handleOpenEditSaldos())}
+            className={`flex items-center gap-1.5 rounded-xl px-3 py-1.5 text-xs font-bold transition cursor-pointer shadow-xs ${
+              isEditingSaldos
+                ? "bg-amber-400 text-stone-950 font-black ring-2 ring-amber-300"
+                : "bg-emerald-600 hover:bg-emerald-500 text-white"
+            }`}
+            title="Editar o ajustar saldos de Tigo y Claro directamente"
+          >
+            <PencilIcon className="h-3.5 w-3.5" />
+            <span>{isEditingSaldos ? "Cerrar Edición" : "Editar Saldo"}</span>
+          </button>
+
+          {/* Full modal button for deep movements history */}
           <button
             type="button"
             onClick={onOpenBolsasModal}
-            className="flex items-center gap-1 rounded-xl bg-white/20 hover:bg-white/30 px-3 py-1.5 text-xs font-bold text-white transition cursor-pointer ml-1"
-            title="Administrar / Comprar Saldo"
+            className="flex items-center gap-1 rounded-xl bg-white/15 hover:bg-white/25 px-2.5 py-1.5 text-xs font-semibold text-stone-300 hover:text-white transition cursor-pointer"
+            title="Historial de Movimientos y Auditoría"
           >
-            <WalletIcon className="h-4 w-4" />
-            <span className="hidden sm:inline">Bolsas</span>
+            <WalletIcon className="h-3.5 w-3.5" />
+            <span className="hidden md:inline">Historial</span>
           </button>
         </div>
       </div>
 
-      {/* Main Body Form */}
+      {/* Inline Balance Editor Panel (When Active) */}
+      {isEditingSaldos && (
+        <div className="bg-amber-50/90 border-b border-amber-200 p-4 sm:p-5 transition-all space-y-4">
+          <div className="flex items-center justify-between">
+            <div className="flex items-center gap-2">
+              <div className="flex h-7 w-7 items-center justify-center rounded-lg bg-amber-500 text-white shadow-2xs">
+                <PencilIcon className="h-4 w-4" />
+              </div>
+              <div>
+                <h3 className="text-xs sm:text-sm font-black text-amber-950 uppercase tracking-wide">
+                  Editar / Ajustar Saldos de Bolsas
+                </h3>
+                <p className="text-[11px] text-amber-800">
+                  Modifica directamente el saldo disponible para Tigo y Claro
+                </p>
+              </div>
+            </div>
+
+            <button
+              type="button"
+              onClick={() => setIsEditingSaldos(false)}
+              className="rounded-lg p-1.5 text-amber-800 hover:bg-amber-200/60 transition cursor-pointer"
+            >
+              <XMarkIcon className="h-4 w-4" />
+            </button>
+          </div>
+
+          {/* Mode Selector */}
+          <div className="flex gap-2">
+            <button
+              type="button"
+              onClick={() => setModoEdicionSaldo("fijar")}
+              className={`flex-1 rounded-xl py-2 px-3 text-xs font-bold transition cursor-pointer ${
+                modoEdicionSaldo === "fijar"
+                  ? "bg-stone-900 text-white shadow-xs"
+                  : "bg-white text-stone-700 border border-amber-300 hover:bg-amber-100/50"
+              }`}
+            >
+              Fijar saldo exacto (Ajuste / Saldo Inicial)
+            </button>
+            <button
+              type="button"
+              onClick={() => setModoEdicionSaldo("sumar")}
+              className={`flex-1 rounded-xl py-2 px-3 text-xs font-bold transition cursor-pointer ${
+                modoEdicionSaldo === "sumar"
+                  ? "bg-stone-900 text-white shadow-xs"
+                  : "bg-white text-stone-700 border border-amber-300 hover:bg-amber-100/50"
+              }`}
+            >
+              Sumar saldo (+ Compra / Reposición)
+            </button>
+          </div>
+
+          {/* Form Grid for Both Operators */}
+          <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
+            {/* TIGO Box */}
+            <div className="rounded-xl border border-blue-200 bg-white p-3.5 shadow-2xs space-y-2">
+              <div className="flex items-center justify-between">
+                <span className="text-xs font-black text-blue-900 flex items-center gap-1.5">
+                  <span className="h-2.5 w-2.5 rounded-full bg-blue-600" />
+                  Bolsa TIGO
+                </span>
+                <span className="text-[11px] font-bold text-stone-500">
+                  Actual: {money.format(bolsaTigo.saldo_actual)}
+                </span>
+              </div>
+
+              <div>
+                <label className="block text-[10px] font-bold uppercase text-stone-500 mb-1">
+                  {modoEdicionSaldo === "fijar" ? "Nuevo Saldo Total ($)" : "Monto a Sumar ($)"}
+                </label>
+                <input
+                  type="number"
+                  min="0"
+                  step="1"
+                  value={nuevoSaldoTigo}
+                  onChange={(e) => setNuevoSaldoTigo(e.target.value)}
+                  placeholder="0.00"
+                  className="w-full rounded-xl border border-blue-300 bg-blue-50/30 px-3 py-2 text-base font-black text-blue-950 outline-none focus:border-blue-600 focus:bg-white"
+                />
+              </div>
+
+              <div className="flex justify-end pt-1">
+                <button
+                  type="button"
+                  disabled={guardandoSaldos}
+                  onClick={() => handleGuardarSaldos("tigo")}
+                  className="rounded-lg bg-blue-600 hover:bg-blue-700 px-3 py-1.5 text-xs font-bold text-white shadow-2xs active:scale-95 transition disabled:opacity-50 cursor-pointer"
+                >
+                  Guardar Tigo
+                </button>
+              </div>
+            </div>
+
+            {/* CLARO Box */}
+            <div className="rounded-xl border border-red-200 bg-white p-3.5 shadow-2xs space-y-2">
+              <div className="flex items-center justify-between">
+                <span className="text-xs font-black text-red-900 flex items-center gap-1.5">
+                  <span className="h-2.5 w-2.5 rounded-full bg-red-600" />
+                  Bolsa CLARO
+                </span>
+                <span className="text-[11px] font-bold text-stone-500">
+                  Actual: {money.format(bolsaClaro.saldo_actual)}
+                </span>
+              </div>
+
+              <div>
+                <label className="block text-[10px] font-bold uppercase text-stone-500 mb-1">
+                  {modoEdicionSaldo === "fijar" ? "Nuevo Saldo Total ($)" : "Monto a Sumar ($)"}
+                </label>
+                <input
+                  type="number"
+                  min="0"
+                  step="1"
+                  value={nuevoSaldoClaro}
+                  onChange={(e) => setNuevoSaldoClaro(e.target.value)}
+                  placeholder="0.00"
+                  className="w-full rounded-xl border border-red-300 bg-red-50/30 px-3 py-2 text-base font-black text-red-950 outline-none focus:border-red-600 focus:bg-white"
+                />
+              </div>
+
+              <div className="flex justify-end pt-1">
+                <button
+                  type="button"
+                  disabled={guardandoSaldos}
+                  onClick={() => handleGuardarSaldos("claro")}
+                  className="rounded-lg bg-red-600 hover:bg-red-700 px-3 py-1.5 text-xs font-bold text-white shadow-2xs active:scale-95 transition disabled:opacity-50 cursor-pointer"
+                >
+                  Guardar Claro
+                </button>
+              </div>
+            </div>
+          </div>
+
+          {/* Cash drawer checkbox if mode is 'sumar' */}
+          {modoEdicionSaldo === "sumar" && (
+            <label className="flex items-center gap-2 text-xs font-medium text-amber-900 bg-amber-100/60 p-2.5 rounded-xl border border-amber-200/80 cursor-pointer">
+              <input
+                type="checkbox"
+                checked={pagoEfectivoCaja}
+                onChange={(e) => setPagoEfectivoCaja(e.target.checked)}
+                className="h-4 w-4 rounded text-stone-900 accent-stone-900"
+              />
+              <span>
+                <strong>Registrar como salida de efectivo de caja</strong> (se descontará del arqueo en el Cierre de Caja)
+              </span>
+            </label>
+          )}
+
+          {errorEdicion && (
+            <div className="rounded-xl border border-red-200 bg-red-50 p-2.5 text-xs text-red-700 font-semibold">
+              {errorEdicion}
+            </div>
+          )}
+
+          {avisoExitoEdicion && (
+            <div className="rounded-xl border border-emerald-200 bg-emerald-50 p-2.5 text-xs text-emerald-800 font-bold flex items-center gap-2">
+              <CheckCircleIcon className="h-4 w-4 text-emerald-600" />
+              <span>{avisoExitoEdicion}</span>
+            </div>
+          )}
+
+          {/* Footer Actions */}
+          <div className="flex items-center justify-between pt-1">
+            <button
+              type="button"
+              onClick={() => setIsEditingSaldos(false)}
+              className="text-xs font-bold text-stone-600 hover:text-stone-900 underline cursor-pointer"
+            >
+              Cancelar
+            </button>
+
+            <button
+              type="button"
+              disabled={guardandoSaldos}
+              onClick={() => handleGuardarSaldos()}
+              className="flex items-center gap-1.5 rounded-xl bg-stone-900 px-5 py-2.5 text-xs font-black text-white shadow-xs hover:bg-stone-800 active:scale-95 transition disabled:opacity-50 cursor-pointer"
+            >
+              <CheckCircleIcon className="h-4 w-4 text-emerald-400" />
+              <span>{guardandoSaldos ? "Guardando..." : "Guardar Ambos Saldos"}</span>
+            </button>
+          </div>
+        </div>
+      )}
+
+      {/* Main Body Form for Selling Recharges */}
       <div className="flex-1 p-4 sm:p-6 overflow-y-auto space-y-5 max-w-xl mx-auto w-full">
         {/* Operator Selection */}
         <div>
-          <label className="block text-xs font-bold text-stone-700 mb-1.5">
-            1. Selecciona el Operador
-          </label>
-          <div className="grid grid-cols-2 gap-3">
+          <div className="flex items-center justify-between mb-1.5">
+            <label className="block text-xs font-bold text-stone-700">
+              1. Selecciona el Operador
+            </label>
             <button
               type="button"
+              onClick={() => handleOpenEditSaldos()}
+              className="text-[11px] font-bold text-stone-500 hover:text-stone-900 flex items-center gap-1 cursor-pointer transition"
+            >
+              <PencilIcon className="h-3 w-3 text-stone-400" />
+              <span>Editar saldos</span>
+            </button>
+          </div>
+
+          <div className="grid grid-cols-2 gap-3">
+            {/* Tigo Card */}
+            <div
               onClick={() => setOperador("tigo")}
-              className={`p-3.5 rounded-xl border text-center transition-all cursor-pointer ${
+              className={`p-3.5 rounded-xl border text-center transition-all cursor-pointer relative group ${
                 operador === "tigo"
                   ? "border-blue-600 bg-blue-50/80 ring-2 ring-blue-600 shadow-xs"
                   : "border-stone-200 bg-white hover:border-stone-300"
@@ -182,12 +517,26 @@ export function RecargasSelector({
               <div className="text-xs font-bold text-blue-700 mt-0.5">
                 Saldo: {money.format(bolsaTigo.saldo_actual)}
               </div>
-            </button>
 
-            <button
-              type="button"
+              {/* Quick Edit pill */}
+              <button
+                type="button"
+                onClick={(e) => {
+                  e.stopPropagation();
+                  handleOpenEditSaldos("tigo");
+                }}
+                className="mt-2 inline-flex items-center gap-1 rounded-md bg-blue-100 hover:bg-blue-200 px-2 py-0.5 text-[10px] font-bold text-blue-800 transition"
+                title="Editar saldo de Tigo"
+              >
+                <PencilIcon className="h-2.5 w-2.5" />
+                <span>Editar</span>
+              </button>
+            </div>
+
+            {/* Claro Card */}
+            <div
               onClick={() => setOperador("claro")}
-              className={`p-3.5 rounded-xl border text-center transition-all cursor-pointer ${
+              className={`p-3.5 rounded-xl border text-center transition-all cursor-pointer relative group ${
                 operador === "claro"
                   ? "border-red-600 bg-red-50/80 ring-2 ring-red-600 shadow-xs"
                   : "border-stone-200 bg-white hover:border-stone-300"
@@ -199,7 +548,21 @@ export function RecargasSelector({
               <div className="text-xs font-bold text-red-700 mt-0.5">
                 Saldo: {money.format(bolsaClaro.saldo_actual)}
               </div>
-            </button>
+
+              {/* Quick Edit pill */}
+              <button
+                type="button"
+                onClick={(e) => {
+                  e.stopPropagation();
+                  handleOpenEditSaldos("claro");
+                }}
+                className="mt-2 inline-flex items-center gap-1 rounded-md bg-red-100 hover:bg-red-200 px-2 py-0.5 text-[10px] font-bold text-red-800 transition"
+                title="Editar saldo de Claro"
+              >
+                <PencilIcon className="h-2.5 w-2.5" />
+                <span>Editar</span>
+              </button>
+            </div>
           </div>
         </div>
 
@@ -212,8 +575,8 @@ export function RecargasSelector({
             </div>
             <button
               type="button"
-              onClick={onOpenBolsasModal}
-              className="rounded-lg bg-amber-600 px-2.5 py-1 text-xs font-bold text-white hover:bg-amber-700 transition"
+              onClick={() => handleOpenEditSaldos(operador)}
+              className="rounded-lg bg-amber-600 px-2.5 py-1 text-xs font-bold text-white hover:bg-amber-700 transition cursor-pointer"
             >
               + Saldo
             </button>

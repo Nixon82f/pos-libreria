@@ -22,9 +22,10 @@ import { CheckoutModal } from "@/components/pos/CheckoutModal";
 import { ReceiptModal } from "@/components/pos/ReceiptModal";
 import { QuickInventoryModal } from "@/components/pos/QuickInventoryModal";
 import { BolsasSaldoModal } from "@/components/pos/BolsasSaldoModal";
-import { RefreshCwIcon, LayersIcon, PackagePlusIcon, CalculatorIcon, SmartphoneIcon } from "@/components/pos/Icons";
+import { RefreshCwIcon, LayersIcon, PackagePlusIcon, CalculatorIcon, SmartphoneIcon, AlertTriangleIcon } from "@/components/pos/Icons";
 import { resolveProductCategory } from "@/lib/categoryStorage";
 import { getLocalBolsas, saveLocalBolsas } from "@/lib/recargasStorage";
+import { getLocalCachedProducts, saveLocalCachedProducts } from "@/lib/productsStorage";
 
 function toProducto(row: {
   id: string;
@@ -130,6 +131,7 @@ export default function PosPage() {
       if (prodRows.length > 0) {
         const listaProd = prodRows.map(toProducto);
         setProductos(listaProd);
+        saveLocalCachedProducts(listaProd);
 
         // Synchronize current cart quantities with fresh stock for products
         setCartItems((prevItems) => {
@@ -152,6 +154,11 @@ export default function PosPage() {
             })
             .filter((item): item is CartItem => item !== null);
         });
+      } else {
+        const cached = getLocalCachedProducts();
+        if (cached.length > 0) {
+          setProductos(cached);
+        }
       }
 
       if (!resServ.error && resServ.data && resServ.data.length > 0) {
@@ -183,6 +190,12 @@ export default function PosPage() {
       }
     } catch (err: unknown) {
       console.error("Error al cargar catálogo:", err);
+      const msg = err instanceof Error ? err.message : "Error de conexión con la base de datos";
+      setErrorGeneral(msg);
+      const cached = getLocalCachedProducts();
+      if (cached.length > 0) {
+        setProductos(cached);
+      }
     } finally {
       setCargando(false);
     }
@@ -406,10 +419,20 @@ export default function PosPage() {
             <h1 className="text-2xl font-bold tracking-tight text-stone-900 sm:text-3xl">
               Punto de Venta
             </h1>
-            <span className="inline-flex items-center gap-1.5 rounded-md border border-emerald-200 bg-emerald-50 px-2 py-0.5 text-xs font-medium text-emerald-800">
-              <span className="h-1.5 w-1.5 rounded-full bg-emerald-600" />
-              <span>En línea</span>
-            </span>
+            {errorGeneral ? (
+              <span
+                className="inline-flex items-center gap-1.5 rounded-md border border-amber-300 bg-amber-50 px-2 py-0.5 text-xs font-semibold text-amber-900"
+                title={errorGeneral}
+              >
+                <span className="h-1.5 w-1.5 rounded-full bg-amber-600 animate-pulse" />
+                <span>Modo Local / Desconectado</span>
+              </span>
+            ) : (
+              <span className="inline-flex items-center gap-1.5 rounded-md border border-emerald-200 bg-emerald-50 px-2 py-0.5 text-xs font-medium text-emerald-800">
+                <span className="h-1.5 w-1.5 rounded-full bg-emerald-600" />
+                <span>En línea</span>
+              </span>
+            )}
           </div>
         </div>
 
@@ -470,8 +493,37 @@ export default function PosPage() {
       </header>
 
       {errorGeneral && (
-        <div className="mb-6 rounded-xl border border-red-200 bg-red-50 p-4 text-sm text-red-700">
-          <strong>Error de conexión:</strong> {errorGeneral}
+        <div className="mb-6 rounded-2xl border border-amber-300 bg-amber-50/90 p-4 sm:p-5 text-xs text-amber-950 shadow-xs space-y-3">
+          <div className="flex items-start gap-3">
+            <div className="rounded-xl bg-amber-500 p-2 text-white shrink-0 mt-0.5">
+              <AlertTriangleIcon className="h-5 w-5" />
+            </div>
+            <div className="flex-1 space-y-1">
+              <h3 className="text-sm font-black text-amber-950">
+                Base de Datos Desconectada ({errorGeneral})
+              </h3>
+              <p className="text-xs text-amber-800 leading-relaxed">
+                El navegador no pudo comunicarse con el servidor de Supabase. Esto ocurre normalmente si tu proyecto en Supabase fue <strong>Pausado por inactividad</strong> (plan gratuito) o si cambiaron las credenciales.
+              </p>
+              <div className="pt-2 flex flex-wrap items-center gap-2.5">
+                <a
+                  href="https://supabase.com/dashboard"
+                  target="_blank"
+                  rel="noopener noreferrer"
+                  className="inline-flex items-center gap-1.5 rounded-xl bg-stone-900 px-3.5 py-2 text-xs font-bold text-white shadow-xs hover:bg-stone-800 transition"
+                >
+                  <span>Abrir Dashboard de Supabase (Reactivar) &rarr;</span>
+                </a>
+                <button
+                  type="button"
+                  onClick={() => cargarCatalogo()}
+                  className="rounded-xl border border-amber-400 bg-white px-3.5 py-2 text-xs font-bold text-stone-800 hover:bg-amber-100/50 transition cursor-pointer"
+                >
+                  Reintentar Conexión
+                </button>
+              </div>
+            </div>
+          </div>
         </div>
       )}
 

@@ -86,7 +86,8 @@ export function ReceiptModal({
               <span>Total</span>
             </div>
             {venta.items_vendidos.map((item, idx) => {
-              const isServicio = item.tipo === "servicio" || !item.producto_id;
+              const isRecarga = item.tipo === "recarga" || Boolean(item.operador);
+              const isServicio = item.tipo === "servicio" || (!item.producto_id && !isRecarga);
               return (
                 <div key={idx} className="flex justify-between text-xs items-start gap-2">
                   <div className="flex-1">
@@ -98,7 +99,7 @@ export function ReceiptModal({
                       </div>
                     )}
                     <div className="text-[10px] text-stone-400">
-                      @{money.format(item.precio_unitario)} c/u {isServicio ? "(Servicio)" : ""}
+                      @{money.format(item.precio_unitario)} c/u {isRecarga ? "(Recarga)" : isServicio ? "(Servicio)" : ""}
                     </div>
                   </div>
                   <div className="font-semibold whitespace-nowrap">

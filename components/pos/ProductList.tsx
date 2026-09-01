@@ -1,7 +1,14 @@
 "use client";
 
 import { useMemo, useState } from "react";
-import type { CartItem, CartItemServicio, Producto, Servicio } from "@/types/database";
+import type {
+  CartItem,
+  CartItemServicio,
+  CartItemRecarga,
+  Producto,
+  Servicio,
+  RecargaBolsa,
+} from "@/types/database";
 import {
   SearchIcon,
   XMarkIcon,
@@ -11,10 +18,12 @@ import {
   PackagePlusIcon,
   UtensilsIcon,
   SparklesIcon,
+  SmartphoneIcon,
   ChevronDownIcon,
   ChevronUpIcon,
 } from "./Icons";
 import { ServicesSelector } from "./ServicesSelector";
+import { RecargasSelector } from "./RecargasSelector";
 
 const money = new Intl.NumberFormat("es-MX", {
   style: "currency",
@@ -24,24 +33,30 @@ const money = new Intl.NumberFormat("es-MX", {
 interface ProductListProps {
   productos: Producto[];
   servicios: Servicio[];
+  bolsas?: RecargaBolsa[];
   cargando: boolean;
   cartItems: CartItem[];
   onAddToCart: (producto: Producto) => void;
   onAddServiceToCart: (item: Omit<CartItemServicio, "id">) => void;
+  onAddRecargaToCart?: (item: Omit<CartItemRecarga, "id">) => void;
   onOpenQuickInventory?: (producto?: Producto) => void;
+  onOpenBolsasModal?: () => void;
 }
 
-type MainTab = "libreria" | "comida" | "variedades" | "servicios";
+type MainTab = "libreria" | "comida" | "variedades" | "recargas" | "servicios";
 type FilterOption = "todos" | "disponibles" | "bajo_stock" | "agotados";
 
 export function ProductList({
   productos,
   servicios,
+  bolsas = [],
   cargando,
   cartItems,
   onAddToCart,
   onAddServiceToCart,
+  onAddRecargaToCart,
   onOpenQuickInventory,
+  onOpenBolsasModal,
 }: ProductListProps) {
   const [mainTab, setMainTab] = useState<MainTab>("libreria");
   
@@ -217,7 +232,25 @@ export function ProductList({
           </span>
         </button>
 
-        {/* Tab 4: Servicios */}
+        {/* Tab 4: Recargas Telefónicas */}
+        <button
+          type="button"
+          onClick={() => setMainTab("recargas")}
+          className={`flex items-center justify-center gap-1.5 rounded-xl py-2 px-3 text-xs font-bold transition-all whitespace-nowrap cursor-pointer ${
+            mainTab === "recargas"
+              ? "bg-white text-stone-900 shadow-xs ring-1 ring-stone-900/5"
+              : "text-stone-600 hover:text-stone-900 hover:bg-white/50"
+          }`}
+        >
+          <SmartphoneIcon className="h-4 w-4 text-stone-700" />
+          <span>Recargas</span>
+          <div className="flex items-center gap-0.5 ml-0.5">
+            <span className="h-2 w-2 rounded-full bg-blue-600" title="Tigo" />
+            <span className="h-2 w-2 rounded-full bg-red-600" title="Claro" />
+          </div>
+        </button>
+
+        {/* Tab 5: Servicios */}
         <button
           type="button"
           onClick={() => setMainTab("servicios")}
@@ -1027,7 +1060,18 @@ export function ProductList({
         </div>
       </div>
 
-      {/* ================= Tab 4: Servicios Rápidos ================= */}
+      {/* ================= Tab 4: Recargas Telefónicas ================= */}
+      <div className={mainTab === "recargas" ? "flex flex-1 flex-col min-h-[250px] overflow-hidden" : "hidden"}>
+        {onAddRecargaToCart && onOpenBolsasModal && (
+          <RecargasSelector
+            bolsas={bolsas}
+            onAddRecargaToCart={onAddRecargaToCart}
+            onOpenBolsasModal={onOpenBolsasModal}
+          />
+        )}
+      </div>
+
+      {/* ================= Tab 5: Servicios Rápidos ================= */}
       <div className={mainTab === "servicios" ? "flex flex-1 flex-col min-h-[250px] overflow-hidden" : "hidden"}>
         <ServicesSelector
           servicios={servicios}

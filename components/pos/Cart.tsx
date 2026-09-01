@@ -7,6 +7,7 @@ import {
   PlusIcon,
   MinusIcon,
   LayersIcon,
+  SmartphoneIcon,
 } from "./Icons";
 
 const money = new Intl.NumberFormat("es-MX", {
@@ -90,15 +91,15 @@ export function Cart({
           <ul className="divide-y divide-stone-100">
             {cartItems.map((item) => {
               const isServicio = item.tipo === "servicio";
+              const isRecarga = item.tipo === "recarga";
+              const isProducto = item.tipo === "producto";
               const itemId = item.id;
-              const nombre =
-                item.tipo === "producto" ? item.producto.nombre : item.nombre;
-              const precioUnitario =
-                item.tipo === "producto"
-                  ? item.producto.precio
-                  : item.precio_unitario;
+              const nombre = isProducto ? item.producto.nombre : item.nombre;
+              const precioUnitario = isProducto
+                ? item.producto.precio
+                : item.precio_unitario;
               const subtotal = precioUnitario * item.cantidad;
-              const maxAlcanzado = !isServicio && item.cantidad >= item.producto.stock;
+              const maxAlcanzado = isProducto && item.cantidad >= item.producto.stock;
 
               return (
                 <li key={itemId} className="py-3.5 first:pt-0 last:pb-0">
@@ -109,6 +110,16 @@ export function Cart({
                           <span className="inline-flex items-center gap-1 rounded-md bg-stone-100 px-1.5 py-0.5 text-[10px] font-bold text-stone-700 border border-stone-200">
                             <LayersIcon className="h-2.5 w-2.5" />
                             Servicio
+                          </span>
+                        )}
+                        {isRecarga && (
+                          <span
+                            className={`inline-flex items-center gap-1 rounded-md px-1.5 py-0.5 text-[10px] font-black uppercase text-white ${
+                              item.operador === "tigo" ? "bg-blue-600" : "bg-red-600"
+                            }`}
+                          >
+                            <SmartphoneIcon className="h-2.5 w-2.5" />
+                            {item.operador}
                           </span>
                         )}
                         <h4 className="text-sm font-semibold text-stone-900 truncate">
@@ -122,11 +133,28 @@ export function Cart({
                         </p>
                       )}
 
+                      {isRecarga && (
+                        <div className="text-xs text-stone-600 font-medium mt-0.5">
+                          {item.numero_telefono && (
+                            <span className="font-mono font-bold text-stone-800 mr-2">
+                              {item.numero_telefono}
+                            </span>
+                          )}
+                          <span className="text-[11px] text-stone-500">
+                            (Saldo ${item.monto_recarga} + Com. ${item.comision})
+                          </span>
+                        </div>
+                      )}
+
                       <p className="text-xs text-stone-500 mt-0.5">
                         {money.format(precioUnitario)} c/u &middot;{" "}
                         {isServicio ? (
                           <span className="text-stone-600 font-medium">
                             Tarifa de servicio
+                          </span>
+                        ) : isRecarga ? (
+                          <span className="text-emerald-700 font-medium">
+                            Recarga telefónica
                           </span>
                         ) : (
                           <span className="text-stone-400">
@@ -163,7 +191,7 @@ export function Cart({
                       <input
                         type="number"
                         min="1"
-                        max={!isServicio ? item.producto.stock : undefined}
+                        max={isProducto ? item.producto.stock : undefined}
                         value={item.cantidad}
                         disabled={isProcessing}
                         onChange={(e) => {

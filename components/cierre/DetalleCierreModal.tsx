@@ -148,10 +148,53 @@ export function DetalleCierreModal({ cierre, onClose }: DetalleCierreModalProps)
             </div>
 
             <div className="rounded-xl border border-stone-200 bg-stone-50/60 p-3">
-              <span className="block text-[11px] font-semibold text-stone-500">Transacciones</span>
-              <span className="text-lg font-bold text-stone-900">{cierre.total_transacciones} tickets</span>
+              <span className="block text-[11px] font-semibold text-stone-500">Recargas Telefónicas</span>
+              <span className="text-lg font-bold text-stone-900">{money.format(cierre.total_recargas || 0)}</span>
+              {Boolean(cierre.total_comisiones_recargas) && (
+                <span className="text-[10px] font-bold text-emerald-700 block">
+                  +{money.format(cierre.total_comisiones_recargas || 0)} comisiones
+                </span>
+              )}
             </div>
           </div>
+
+          {/* Section 1: Breakdown of Recargas if available */}
+          {cierre.desglose_recargas && (
+            <div className="rounded-xl border border-stone-200 bg-stone-50/40 p-4 space-y-2.5">
+              <div className="flex items-center justify-between text-xs font-bold uppercase text-stone-700 tracking-wider">
+                <span>Auditoría de Recargas (Tigo / Claro)</span>
+                <span className="text-emerald-800 bg-emerald-100/80 px-2 py-0.5 rounded text-[11px]">
+                  Comisiones: +{money.format(cierre.desglose_recargas.total_comisiones || 0)}
+                </span>
+              </div>
+
+              <div className="grid grid-cols-1 sm:grid-cols-2 gap-2 text-xs">
+                {/* Tigo */}
+                <div className="rounded-lg border border-blue-200 bg-white p-2.5 space-y-1">
+                  <div className="flex justify-between font-bold text-blue-900">
+                    <span>TIGO</span>
+                    <span>Saldo Final: {money.format(cierre.desglose_recargas.tigo?.saldo_final_esperado || 0)}</span>
+                  </div>
+                  <div className="flex justify-between text-[11px] text-stone-500">
+                    <span>Vendido: {money.format(cierre.desglose_recargas.tigo?.ventas || 0)}</span>
+                    <span>Repuesto: {money.format(cierre.desglose_recargas.tigo?.compras_saldo || 0)}</span>
+                  </div>
+                </div>
+
+                {/* Claro */}
+                <div className="rounded-lg border border-red-200 bg-white p-2.5 space-y-1">
+                  <div className="flex justify-between font-bold text-red-900">
+                    <span>CLARO</span>
+                    <span>Saldo Final: {money.format(cierre.desglose_recargas.claro?.saldo_final_esperado || 0)}</span>
+                  </div>
+                  <div className="flex justify-between text-[11px] text-stone-500">
+                    <span>Vendido: {money.format(cierre.desglose_recargas.claro?.ventas || 0)}</span>
+                    <span>Repuesto: {money.format(cierre.desglose_recargas.claro?.compras_saldo || 0)}</span>
+                  </div>
+                </div>
+              </div>
+            </div>
+          )}
 
           {/* Section 1: Breakdown of Services */}
           <div className="rounded-xl border border-stone-200 bg-white p-4 space-y-2.5">

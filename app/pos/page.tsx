@@ -7,11 +7,13 @@ import type {
   CartItem,
   CartItemProducto,
   CartItemServicio,
+  CartItemRecarga,
   MetodoPago,
   Producto,
   CategoriaProducto,
   Servicio,
   Venta,
+  RecargaBolsa,
 } from "@/types/database";
 import { DEFAULT_SERVICIOS } from "@/types/database";
 import { ProductList } from "@/components/pos/ProductList";
@@ -19,8 +21,10 @@ import { Cart } from "@/components/pos/Cart";
 import { CheckoutModal } from "@/components/pos/CheckoutModal";
 import { ReceiptModal } from "@/components/pos/ReceiptModal";
 import { QuickInventoryModal } from "@/components/pos/QuickInventoryModal";
-import { RefreshCwIcon, LayersIcon, PackagePlusIcon, CalculatorIcon } from "@/components/pos/Icons";
+import { BolsasSaldoModal } from "@/components/pos/BolsasSaldoModal";
+import { RefreshCwIcon, LayersIcon, PackagePlusIcon, CalculatorIcon, SmartphoneIcon } from "@/components/pos/Icons";
 import { resolveProductCategory } from "@/lib/categoryStorage";
+import { getLocalBolsas, saveLocalBolsas } from "@/lib/recargasStorage";
 
 function toProducto(row: {
   id: string;
@@ -44,12 +48,16 @@ export default function PosPage() {
   // Products and inventory state (servicios pre-initialized for instant 0ms render)
   const [productos, setProductos] = useState<Producto[]>([]);
   const [servicios, setServicios] = useState<Servicio[]>(DEFAULT_SERVICIOS);
+  const [bolsas, setBolsas] = useState<RecargaBolsa[]>(() => getLocalBolsas());
   const [cargando, setCargando] = useState(true);
   const [errorGeneral, setErrorGeneral] = useState<string | null>(null);
 
   // Quick Inventory Modal state
   const [isInventoryModalOpen, setIsInventoryModalOpen] = useState(false);
   const [selectedProductForInventory, setSelectedProductForInventory] = useState<Producto | null>(null);
+
+  // Bolsas Saldo Modal state
+  const [isBolsasModalOpen, setIsBolsasModalOpen] = useState(false);
 
   const handleOpenQuickInventory = useCallback((producto?: Producto) => {
     setSelectedProductForInventory(producto || null);
@@ -126,8 +134,8 @@ export default function PosPage() {
         // Synchronize current cart quantities with fresh stock for products
         setCartItems((prevItems) => {
           return prevItems
-            .map((item) => {
-              if (item.tipo === "servicio") {
+            .map((item): CartItem | null => {
+              if (item.tipo !== "producto") {
                 return item;
               }
               const prodActualizado = listaProd.find(
@@ -162,6 +170,16 @@ export default function PosPage() {
             updated_at: s.updated_at,
           }))
         );
+      }
+      // Also fetch recargas bolsas
+      const { data: dataBolsas } = await supabase
+        .from("recargas_bolsas")
+        .select("*");
+
+      if (dataBolsas && dataBolsas.length > 0) {
+        const mappedBolsas = dataBolsas as RecargaBolsa[];
+        setBolsas(mappedBolsas);
+        saveLocalBolsas(mappedBolsas);
       }
     } catch (err: unknown) {
       console.error("Error al cargar catálogo:", err);
@@ -229,6 +247,17 @@ export default function PosPage() {
     []
   );
 
+  const handleAddRecargaToCart = useCallback(
+    (itemData: Omit<CartItemRecarga, "id">) => {
+      const newItem: CartItemRecarga = {
+        ...itemData,
+        id: `recarga-${Date.now()}-${Math.random().toString(36).slice(2, 7)}`,
+      };
+      setCartItems((prev) => [...prev, newItem]);
+    },
+    []
+  );
+
   const handleUpdateQuantity = useCallback((itemId: string, delta: number) => {
     setCartItems((prev) => {
       return prev
@@ -274,10 +303,10 @@ export default function PosPage() {
 
   const totalPagar = useMemo(() => {
     return cartItems.reduce((acc, item) => {
-      if (item.tipo === "servicio") {
-        return acc + item.precio_unitario * item.cantidad;
+      if (item.tipo === "producto") {
+        return acc + item.producto.precio * item.cantidad;
       }
-      return acc + item.producto.precio * item.cantidad;
+      return acc + item.precio_unitario * item.cantidad;
     }, 0);
   }, [cartItems]);
 
@@ -293,6 +322,17 @@ export default function PosPage() {
 
     try {
       const itemsPayload = cartItems.map((item) => {
+        if (item.tipo === "recarga") {
+          return {
+            tipo: "recarga",
+            operador: item.operador,
+            numero_telefono: item.numero_telefono,
+            monto_recarga: item.monto_recarga,
+            comision: item.comision,
+            precio_unitario: item.precio_unitario,
+            cantidad: item.cantidad,
+          };
+        }
         if (item.tipo === "servicio") {
           return {
             tipo: "servicio",
@@ -437,16 +477,19 @@ export default function PosPage() {
 
       {/* Two column layout: Catalog & Services on left, Cart on right */}
       <div className="grid flex-1 grid-cols-1 gap-6 lg:grid-cols-12">
-        {/* Left: Product Search & Services Selector */}
+        {/* Left: Product Search, Services & Recargas */}
         <div className="lg:col-span-7 xl:col-span-8 flex flex-col min-h-[600px] lg:min-h-0 lg:h-[calc(100vh-12rem)]">
           <ProductList
             productos={productos}
             servicios={servicios}
+            bolsas={bolsas}
             cargando={cargando}
             cartItems={cartItems}
             onAddToCart={handleAddToCart}
             onAddServiceToCart={handleAddServiceToCart}
+            onAddRecargaToCart={handleAddRecargaToCart}
             onOpenQuickInventory={handleOpenQuickInventory}
+            onOpenBolsasModal={() => setIsBolsasModalOpen(true)}
           />
         </div>
 
@@ -477,6 +520,17 @@ export default function PosPage() {
         productos={productos}
         initialProduct={selectedProductForInventory}
         onProductCreatedOrUpdated={cargarCatalogo}
+      />
+
+      {/* Bolsas Saldo Modal */}
+      <BolsasSaldoModal
+        isOpen={isBolsasModalOpen}
+        onClose={() => setIsBolsasModalOpen(false)}
+        bolsas={bolsas}
+        onBolsasUpdated={(nuevasBolsas) => {
+          setBolsas(nuevasBolsas);
+          saveLocalBolsas(nuevasBolsas);
+        }}
       />
 
       {/* Checkout Modal */}

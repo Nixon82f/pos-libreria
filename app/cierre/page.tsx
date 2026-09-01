@@ -7,8 +7,11 @@ import type {
   Venta,
   CierreCaja,
   DesgloseServiciosCierre,
+  DesgloseRecargasCierre,
   DesgloseEfectivo,
   EstadoDiferenciaCierre,
+  RecargaMovimiento,
+  RecargaBolsa,
 } from "@/types/database";
 import { CalculadoraEfectivo } from "@/components/cierre/CalculadoraEfectivo";
 import { DetalleCierreModal } from "@/components/cierre/DetalleCierreModal";
@@ -16,6 +19,7 @@ import {
   BanknotesIcon,
   LayersIcon,
   BookOpenIcon,
+  SmartphoneIcon,
   RefreshCwIcon,
   CheckCircleIcon,
   SearchIcon,
@@ -24,6 +28,7 @@ import {
   ClockIcon,
   PrinterIcon,
 } from "@/components/pos/Icons";
+import { getLocalBolsas, getLocalRecargasMovimientos } from "@/lib/recargasStorage";
 
 const money = new Intl.NumberFormat("es-MX", {
   style: "currency",
@@ -40,6 +45,8 @@ export default function CierrePage() {
 
   // Current Shift State
   const [ventasTurno, setVentasTurno] = useState<Venta[]>([]);
+  const [recargasMovimientos, setRecargasMovimientos] = useState<RecargaMovimiento[]>([]);
+  const [bolsas, setBolsas] = useState<RecargaBolsa[]>(() => getLocalBolsas());
   const [ultimoCierre, setUltimoCierre] = useState<CierreCaja | null>(null);
   const [cargandoTurno, setCargandoTurno] = useState(true);
   const [errorTurno, setErrorTurno] = useState<string | null>(null);
@@ -80,26 +87,44 @@ export default function CierrePage() {
         : new Date(new Date().setHours(0, 0, 0, 0)).toISOString();
 
       // Query sales since fechaInicio
-      let queryVentas = supabase
-        .from("ventas")
-        .select("id, fecha, total, items_vendidos")
-        .gte("fecha", fechaInicio)
-        .order("fecha", { ascending: true });
+      const [resVentas, resMovs, resBolsas] = await Promise.all([
+        supabase
+          .from("ventas")
+          .select("id, fecha, total, items_vendidos")
+          .gte("fecha", fechaInicio)
+          .order("fecha", { ascending: true }),
+        supabase
+          .from("recargas_movimientos")
+          .select("*")
+          .gte("fecha", fechaInicio)
+          .order("fecha", { ascending: true }),
+        supabase
+          .from("recargas_bolsas")
+          .select("*"),
+      ]);
 
-      const { data: dataVentas, error: errorVentas } = await queryVentas;
-
-      if (errorVentas) {
-        throw new Error(errorVentas.message);
+      if (resVentas.error) {
+        throw new Error(resVentas.error.message);
       }
 
       setVentasTurno(
-        (dataVentas ?? []).map((row) => ({
+        (resVentas.data ?? []).map((row) => ({
           id: row.id,
           fecha: row.fecha,
           total: Number(row.total),
           items_vendidos: Array.isArray(row.items_vendidos) ? row.items_vendidos : [],
         }))
       );
+
+      if (!resMovs.error && resMovs.data) {
+        setRecargasMovimientos(resMovs.data as RecargaMovimiento[]);
+      } else {
+        setRecargasMovimientos(getLocalRecargasMovimientos());
+      }
+
+      if (!resBolsas.error && resBolsas.data && resBolsas.data.length > 0) {
+        setBolsas(resBolsas.data as RecargaBolsa[]);
+      }
     } catch (err: unknown) {
       const msg = err instanceof Error ? err.message : "Error al cargar datos del turno.";
       setErrorTurno(msg);
@@ -117,7 +142,6 @@ export default function CierrePage() {
         .order("fecha_cierre", { ascending: false });
 
       if (errHistorial) {
-        // If table not created yet, return empty list gracefully
         setHistorialCierres([]);
         return;
       }
@@ -128,6 +152,9 @@ export default function CierrePage() {
           total_ventas: Number(row.total_ventas),
           total_productos: Number(row.total_productos),
           total_servicios: Number(row.total_servicios),
+          total_recargas: Number(row.total_recargas || 0),
+          total_comisiones_recargas: Number(row.total_comisiones_recargas || 0),
+          total_compras_saldo_efectivo: Number(row.total_compras_saldo_efectivo || 0),
           total_efectivo_esperado: Number(row.total_efectivo_esperado),
           total_transferencia_esperado: Number(row.total_transferencia_esperado),
           total_tarjeta_esperado: Number(row.total_tarjeta_esperado),
@@ -167,7 +194,10 @@ export default function CierrePage() {
     let totalVentas = 0;
     let totalProductos = 0;
     let totalServicios = 0;
-    let totalEfectivo = 0;
+    let totalRecargas = 0; // Cobrado a clientes
+    let totalComisionesRecargas = 0;
+    let totalVentasSaldoRecargas = 0;
+    let totalEfectivoVentas = 0;
     let totalTransferencias = 0;
     let totalTarjetas = 0;
 
@@ -182,13 +212,18 @@ export default function CierrePage() {
 
     for (const v of ventasTurno) {
       totalVentas += v.total;
-      // Default payment method is efectivo (or in json if extended)
-      totalEfectivo += v.total;
+      totalEfectivoVentas += v.total;
 
       for (const item of v.items_vendidos) {
         const itemSubtotal = item.precio_unitario * item.cantidad;
 
-        if (item.tipo === "servicio" || item.servicio_id || item.codigo_servicio) {
+        if (item.tipo === "recarga" || item.operador) {
+          totalRecargas += itemSubtotal;
+          const com = (item.comision || 0) * item.cantidad;
+          const monto = (item.monto_recarga || (item.precio_unitario - com)) * item.cantidad;
+          totalComisionesRecargas += com;
+          totalVentasSaldoRecargas += monto;
+        } else if (item.tipo === "servicio" || item.servicio_id || item.codigo_servicio) {
           totalServicios += itemSubtotal;
           const cod = (item.codigo_servicio || "").toLowerCase();
           const nom = (item.nombre || "").toLowerCase();
@@ -212,17 +247,90 @@ export default function CierrePage() {
       }
     }
 
+    // Process recargas movements for operator audit & cash payouts
+    let comprasSaldoEfectivoCaja = 0;
+    const desgloseRecargas: DesgloseRecargasCierre = {
+      tigo: {
+        saldo_inicial: 0,
+        ventas: 0,
+        comisiones: 0,
+        compras_saldo: 0,
+        compras_saldo_efectivo: 0,
+        saldo_final_esperado: 0,
+      },
+      claro: {
+        saldo_inicial: 0,
+        ventas: 0,
+        comisiones: 0,
+        compras_saldo: 0,
+        compras_saldo_efectivo: 0,
+        saldo_final_esperado: 0,
+      },
+      total_ventas_saldo: 0,
+      total_comisiones: 0,
+      total_cobrado_recargas: totalRecargas,
+      total_compras_efectivo_caja: 0,
+    };
+
+    const bolsaTigoActual = bolsas.find((b) => b.operador === "tigo")?.saldo_actual || 0;
+    const bolsaClaroActual = bolsas.find((b) => b.operador === "claro")?.saldo_actual || 0;
+
+    const movsTigo = recargasMovimientos.filter((m) => m.operador === "tigo");
+    const movsClaro = recargasMovimientos.filter((m) => m.operador === "claro");
+
+    desgloseRecargas.tigo.saldo_inicial = movsTigo.length > 0 ? movsTigo[0].saldo_anterior : bolsaTigoActual;
+    desgloseRecargas.claro.saldo_inicial = movsClaro.length > 0 ? movsClaro[0].saldo_anterior : bolsaClaroActual;
+
+    for (const m of recargasMovimientos) {
+      const op = m.operador;
+      if (m.tipo === "venta_recarga") {
+        desgloseRecargas[op].ventas += m.monto_saldo;
+        desgloseRecargas[op].comisiones += m.comision;
+      } else if (m.tipo === "compra_saldo") {
+        desgloseRecargas[op].compras_saldo += m.monto_saldo;
+        if (m.pago_con_efectivo_caja) {
+          desgloseRecargas[op].compras_saldo_efectivo += m.monto_saldo;
+          comprasSaldoEfectivoCaja += m.monto_saldo;
+        }
+      } else if (m.tipo === "apertura_saldo" || m.tipo === "ajuste_manual") {
+        desgloseRecargas[op].saldo_inicial = m.saldo_nuevo;
+      }
+    }
+
+    desgloseRecargas.tigo.saldo_final_esperado =
+      desgloseRecargas.tigo.saldo_inicial +
+      desgloseRecargas.tigo.compras_saldo -
+      desgloseRecargas.tigo.ventas;
+
+    desgloseRecargas.claro.saldo_final_esperado =
+      desgloseRecargas.claro.saldo_inicial +
+      desgloseRecargas.claro.compras_saldo -
+      desgloseRecargas.claro.ventas;
+
+    desgloseRecargas.total_ventas_saldo = desgloseRecargas.tigo.ventas + desgloseRecargas.claro.ventas;
+    desgloseRecargas.total_comisiones = desgloseRecargas.tigo.comisiones + desgloseRecargas.claro.comisiones || totalComisionesRecargas;
+    desgloseRecargas.total_compras_efectivo_caja = comprasSaldoEfectivoCaja;
+
+    // Expected cash in drawer: Collected sales MINUS payouts for buying balance float
+    const totalEfectivoEsperado = Math.max(0, totalEfectivoVentas - comprasSaldoEfectivoCaja);
+
     return {
       totalVentas,
       totalProductos,
       totalServicios,
+      totalRecargas,
+      totalComisionesRecargas: desgloseRecargas.total_comisiones,
+      totalVentasSaldoRecargas,
+      comprasSaldoEfectivoCaja,
+      desgloseRecargas,
       desgloseServicios,
-      totalEfectivo,
+      totalEfectivo: totalEfectivoEsperado,
+      totalEfectivoVentas,
       totalTransferencias,
       totalTarjetas,
       totalTickets: ventasTurno.length,
     };
-  }, [ventasTurno]);
+  }, [ventasTurno, recargasMovimientos, bolsas]);
 
   // Calculate counted physical cash
   const totalEfectivoContado = useMemo(() => {
@@ -285,7 +393,11 @@ export default function CierrePage() {
       total_ventas: resumenTurno.totalVentas,
       total_productos: resumenTurno.totalProductos,
       total_servicios: resumenTurno.totalServicios,
+      total_recargas: resumenTurno.totalRecargas,
+      total_comisiones_recargas: resumenTurno.totalComisionesRecargas,
+      total_compras_saldo_efectivo: resumenTurno.comprasSaldoEfectivoCaja,
       desglose_servicios: resumenTurno.desgloseServicios,
+      desglose_recargas: resumenTurno.desgloseRecargas,
       total_efectivo_esperado: resumenTurno.totalEfectivo,
       total_transferencia_esperado: resumenTurno.totalTransferencias,
       total_tarjeta_esperado: resumenTurno.totalTarjetas,
@@ -511,7 +623,7 @@ export default function CierrePage() {
                   {money.format(resumenTurno.totalProductos)}
                 </span>
                 <span className="text-[11px] text-stone-500">
-                  Inventario de papelería y snacks
+                  Papelería, comida y variedades
                 </span>
               </div>
 
@@ -529,18 +641,102 @@ export default function CierrePage() {
                 </span>
               </div>
 
-              {/* Efectivo Esperado en Caja */}
+              {/* Recargas Telefónicas */}
               <div className="rounded-xl border border-stone-200 bg-stone-50/70 p-4">
-                <div className="flex items-center gap-1.5 text-[11px] font-bold uppercase tracking-wider text-stone-600">
-                  <BanknotesIcon className="h-3.5 w-3.5 text-stone-500" />
-                  <span>Efectivo Esperado</span>
+                <div className="flex items-center justify-between">
+                  <div className="flex items-center gap-1.5 text-[11px] font-bold uppercase tracking-wider text-stone-600">
+                    <SmartphoneIcon className="h-3.5 w-3.5 text-stone-500" />
+                    <span>Recargas Telefónicas</span>
+                  </div>
+                  <span className="text-[10px] font-bold text-emerald-700 bg-emerald-100 px-1.5 py-0.5 rounded">
+                    +{money.format(resumenTurno.totalComisionesRecargas)} com.
+                  </span>
                 </div>
                 <span className="mt-1 block text-2xl font-black text-stone-900">
-                  {money.format(resumenTurno.totalEfectivo)}
+                  {money.format(resumenTurno.totalRecargas)}
                 </span>
                 <span className="text-[11px] text-stone-500">
-                  Dinero a conciliar en gaveta
+                  Cobrado a clientes (Tigo y Claro)
                 </span>
+              </div>
+            </div>
+
+            {/* Recargas & Operator Balance Floats Audit Section */}
+            <div className="rounded-xl border border-stone-200 bg-gradient-to-br from-stone-50 to-stone-100/50 p-4 space-y-3">
+              <div className="flex flex-wrap items-center justify-between gap-2 border-b border-stone-200/80 pb-2">
+                <div className="flex items-center gap-2">
+                  <SmartphoneIcon className="h-4 w-4 text-stone-700" />
+                  <h3 className="text-xs font-bold uppercase text-stone-800 tracking-wider">
+                    Auditoría de Recargas y Conciliación de Saldos
+                  </h3>
+                </div>
+                <div className="flex items-center gap-2 text-xs">
+                  <span className="font-bold text-emerald-800 bg-emerald-100/80 px-2 py-0.5 rounded-lg">
+                    Ganancia Comisiones: +{money.format(resumenTurno.totalComisionesRecargas)}
+                  </span>
+                  {resumenTurno.comprasSaldoEfectivoCaja > 0 && (
+                    <span className="font-bold text-amber-900 bg-amber-100/80 px-2 py-0.5 rounded-lg">
+                      Salidas Efectivo Caja: -{money.format(resumenTurno.comprasSaldoEfectivoCaja)}
+                    </span>
+                  )}
+                </div>
+              </div>
+
+              {/* Tigo & Claro Comparison Grid */}
+              <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
+                {/* TIGO Card */}
+                <div className="rounded-xl border border-blue-200 bg-white p-3.5 shadow-2xs space-y-2">
+                  <div className="flex items-center justify-between">
+                    <span className="text-xs font-black text-blue-900 flex items-center gap-1">
+                      <span className="h-2 w-2 rounded-full bg-blue-600" />
+                      TIGO
+                    </span>
+                    <span className="text-[11px] font-bold text-blue-800">
+                      Saldo Final Esperado: {money.format(resumenTurno.desgloseRecargas.tigo.saldo_final_esperado)}
+                    </span>
+                  </div>
+                  <div className="grid grid-cols-3 gap-1.5 text-[11px] pt-1 border-t border-stone-100">
+                    <div>
+                      <span className="text-stone-400 block text-[10px]">Saldo Inicial</span>
+                      <span className="font-bold text-stone-700">{money.format(resumenTurno.desgloseRecargas.tigo.saldo_inicial)}</span>
+                    </div>
+                    <div>
+                      <span className="text-stone-400 block text-[10px]">Saldo Vendido</span>
+                      <span className="font-bold text-red-600">-{money.format(resumenTurno.desgloseRecargas.tigo.ventas)}</span>
+                    </div>
+                    <div>
+                      <span className="text-stone-400 block text-[10px]">Saldo Repuesto</span>
+                      <span className="font-bold text-emerald-700">+{money.format(resumenTurno.desgloseRecargas.tigo.compras_saldo)}</span>
+                    </div>
+                  </div>
+                </div>
+
+                {/* CLARO Card */}
+                <div className="rounded-xl border border-red-200 bg-white p-3.5 shadow-2xs space-y-2">
+                  <div className="flex items-center justify-between">
+                    <span className="text-xs font-black text-red-900 flex items-center gap-1">
+                      <span className="h-2 w-2 rounded-full bg-red-600" />
+                      CLARO
+                    </span>
+                    <span className="text-[11px] font-bold text-red-800">
+                      Saldo Final Esperado: {money.format(resumenTurno.desgloseRecargas.claro.saldo_final_esperado)}
+                    </span>
+                  </div>
+                  <div className="grid grid-cols-3 gap-1.5 text-[11px] pt-1 border-t border-stone-100">
+                    <div>
+                      <span className="text-stone-400 block text-[10px]">Saldo Inicial</span>
+                      <span className="font-bold text-stone-700">{money.format(resumenTurno.desgloseRecargas.claro.saldo_inicial)}</span>
+                    </div>
+                    <div>
+                      <span className="text-stone-400 block text-[10px]">Saldo Vendido</span>
+                      <span className="font-bold text-red-600">-{money.format(resumenTurno.desgloseRecargas.claro.ventas)}</span>
+                    </div>
+                    <div>
+                      <span className="text-stone-400 block text-[10px]">Saldo Repuesto</span>
+                      <span className="font-bold text-emerald-700">+{money.format(resumenTurno.desgloseRecargas.claro.compras_saldo)}</span>
+                    </div>
+                  </div>
+                </div>
               </div>
             </div>
 
@@ -589,6 +785,28 @@ export default function CierrePage() {
                   </span>
                 </div>
               </div>
+            </div>
+          </div>
+
+          {/* Cash Drawer Calculation Note */}
+          <div className="rounded-xl border border-stone-200 bg-white p-4 flex flex-wrap items-center justify-between gap-3 text-xs">
+            <div className="flex items-center gap-2">
+              <BanknotesIcon className="h-5 w-5 text-stone-600" />
+              <div>
+                <span className="font-bold text-stone-900 block">
+                  Cálculo del Efectivo Esperado en Gaveta
+                </span>
+                <span className="text-stone-500">
+                  Total ventas recaudadas ({money.format(resumenTurno.totalEfectivoVentas)})
+                  {resumenTurno.comprasSaldoEfectivoCaja > 0
+                    ? ` - Salidas para reponer saldo (${money.format(resumenTurno.comprasSaldoEfectivoCaja)})`
+                    : ""}
+                </span>
+              </div>
+            </div>
+            <div className="text-right">
+              <span className="text-stone-500 text-[11px] block">Efectivo a Cuadrar:</span>
+              <span className="text-lg font-black text-stone-900">{money.format(resumenTurno.totalEfectivo)}</span>
             </div>
           </div>
 

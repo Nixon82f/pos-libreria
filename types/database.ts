@@ -162,11 +162,48 @@ export type VentaServicioDetalle = {
   fecha: string;
 };
 
+export type OperadorRecarga = "tigo" | "claro";
+
+export type TipoMovimientoRecarga =
+  | "apertura_saldo"
+  | "venta_recarga"
+  | "compra_saldo"
+  | "ajuste_manual";
+
+export type RecargaBolsa = {
+  id: string;
+  operador: OperadorRecarga;
+  nombre_display: string;
+  saldo_actual: number;
+  color_hex: string;
+  updated_at?: string;
+};
+
+export type RecargaMovimiento = {
+  id: string;
+  operador: OperadorRecarga;
+  tipo: TipoMovimientoRecarga;
+  monto_saldo: number;
+  comision: number;
+  total_cobrado_cliente: number;
+  numero_telefono?: string | null;
+  venta_id?: string | null;
+  pago_con_efectivo_caja: boolean;
+  saldo_anterior: number;
+  saldo_nuevo: number;
+  notas?: string | null;
+  fecha: string;
+};
+
 export type ItemVendido = {
-  tipo?: "producto" | "servicio";
+  tipo?: "producto" | "servicio" | "recarga";
   producto_id?: string;
   servicio_id?: string;
   codigo_servicio?: string;
+  operador?: OperadorRecarga;
+  numero_telefono?: string;
+  monto_recarga?: number;
+  comision?: number;
   nombre: string;
   descripcion_personalizada?: string | null;
   cantidad: number;
@@ -208,7 +245,20 @@ export type CartItemServicio = {
   opcion?: string; // e.g. "B&N", "Color", "Carta", "Media Carta"
 };
 
-export type CartItem = CartItemProducto | CartItemServicio;
+export type CartItemRecarga = {
+  tipo: "recarga";
+  id: string; // unique item id in cart
+  operador: OperadorRecarga;
+  numero_telefono: string;
+  monto_recarga: number;
+  comision: number;
+  precio_unitario: number; // monto_recarga + comision
+  cantidad: number;
+  nombre: string;
+  descripcion_personalizada?: string;
+};
+
+export type CartItem = CartItemProducto | CartItemServicio | CartItemRecarga;
 
 export type MetodoPago = "efectivo" | "tarjeta" | "transferencia";
 
@@ -241,6 +291,24 @@ export type DesgloseServiciosCierre = {
   otros: number;
 };
 
+export type ResumenOperadorRecarga = {
+  saldo_inicial: number;
+  ventas: number;
+  comisiones: number;
+  compras_saldo: number;
+  compras_saldo_efectivo: number;
+  saldo_final_esperado: number;
+};
+
+export type DesgloseRecargasCierre = {
+  tigo: ResumenOperadorRecarga;
+  claro: ResumenOperadorRecarga;
+  total_ventas_saldo: number;
+  total_comisiones: number;
+  total_cobrado_recargas: number;
+  total_compras_efectivo_caja: number;
+};
+
 export type DesgloseEfectivo = {
   b1000?: number;
   b500?: number;
@@ -264,6 +332,10 @@ export type CierreCaja = {
   total_productos: number;
   total_servicios: number;
   desglose_servicios: DesgloseServiciosCierre;
+  total_recargas?: number;
+  total_comisiones_recargas?: number;
+  total_compras_saldo_efectivo?: number;
+  desglose_recargas?: DesgloseRecargasCierre;
   total_efectivo_esperado: number;
   total_transferencia_esperado: number;
   total_tarjeta_esperado: number;
@@ -276,4 +348,5 @@ export type CierreCaja = {
   notas?: string | null;
   created_at?: string;
 };
+
 

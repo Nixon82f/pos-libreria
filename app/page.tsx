@@ -35,7 +35,7 @@ export default function HomePage() {
             </div>
             <h2 className="text-lg font-bold text-stone-900">Punto de Venta (Caja)</h2>
             <p className="mt-1 text-xs text-stone-500">
-              Catálogo de librería y comida, servicios de copistería, cobro en efectivo y emisión de tickets.
+              Librería, comidas, variedades, copistería y recargas telefónicas Tigo & Claro con comisiones variables.
             </p>
           </div>
           <div className="mt-6 flex items-center text-xs font-semibold text-stone-900">

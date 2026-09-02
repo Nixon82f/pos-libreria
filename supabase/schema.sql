@@ -121,7 +121,11 @@ create table if not exists public.cierres_caja (
   total_ventas numeric(10, 2) not null default 0 check (total_ventas >= 0),
   total_productos numeric(10, 2) not null default 0 check (total_productos >= 0),
   total_servicios numeric(10, 2) not null default 0 check (total_servicios >= 0),
+  total_recargas numeric(10, 2) not null default 0 check (total_recargas >= 0),
+  total_comisiones_recargas numeric(10, 2) not null default 0 check (total_comisiones_recargas >= 0),
+  total_compras_saldo_efectivo numeric(10, 2) not null default 0 check (total_compras_saldo_efectivo >= 0),
   desglose_servicios jsonb not null default '{}'::jsonb,
+  desglose_recargas jsonb not null default '{}'::jsonb,
   total_efectivo_esperado numeric(10, 2) not null default 0 check (total_efectivo_esperado >= 0),
   total_transferencia_esperado numeric(10, 2) not null default 0 check (total_transferencia_esperado >= 0),
   total_tarjeta_esperado numeric(10, 2) not null default 0 check (total_tarjeta_esperado >= 0),
@@ -135,7 +139,53 @@ create table if not exists public.cierres_caja (
   created_at timestamptz not null default now()
 );
 
+-- Asegurar columnas si la tabla ya existía
+alter table public.cierres_caja add column if not exists total_recargas numeric(10, 2) not null default 0 check (total_recargas >= 0);
+alter table public.cierres_caja add column if not exists total_comisiones_recargas numeric(10, 2) not null default 0 check (total_comisiones_recargas >= 0);
+alter table public.cierres_caja add column if not exists total_compras_saldo_efectivo numeric(10, 2) not null default 0 check (total_compras_saldo_efectivo >= 0);
+alter table public.cierres_caja add column if not exists desglose_recargas jsonb not null default '{}'::jsonb;
+
 create index if not exists cierres_caja_fecha_idx on public.cierres_caja (fecha_cierre desc);
+
+-- -----------------------------------------------------------------------------
+-- 8. recargas_bolsas y recargas_movimientos (Recargas Telefónicas)
+-- -----------------------------------------------------------------------------
+create table if not exists public.recargas_bolsas (
+  id uuid primary key default gen_random_uuid(),
+  operador text unique not null check (operador in ('tigo', 'claro')),
+  nombre_display text not null,
+  saldo_actual numeric(10, 2) not null default 0 check (saldo_actual >= 0),
+  color_hex text not null default '#00377B',
+  updated_at timestamptz not null default now()
+);
+
+insert into public.recargas_bolsas (operador, nombre_display, saldo_actual, color_hex)
+values
+  ('tigo', 'Tigo', 0.00, '#00377B'),
+  ('claro', 'Claro', 0.00, '#DA291C')
+on conflict (operador) do update set
+  nombre_display = excluded.nombre_display,
+  color_hex = excluded.color_hex;
+
+create table if not exists public.recargas_movimientos (
+  id uuid primary key default gen_random_uuid(),
+  operador text not null check (operador in ('tigo', 'claro')),
+  tipo text not null check (tipo in ('apertura_saldo', 'venta_recarga', 'compra_saldo', 'ajuste_manual')),
+  monto_saldo numeric(10, 2) not null check (monto_saldo >= 0),
+  comision numeric(10, 2) not null default 0 check (comision >= 0),
+  total_cobrado_cliente numeric(10, 2) not null default 0 check (total_cobrado_cliente >= 0),
+  numero_telefono text,
+  venta_id uuid references public.ventas(id) on delete set null,
+  pago_con_efectivo_caja boolean not null default false,
+  saldo_anterior numeric(10, 2) not null check (saldo_anterior >= 0),
+  saldo_nuevo numeric(10, 2) not null check (saldo_nuevo >= 0),
+  notas text,
+  fecha timestamptz not null default now()
+);
+
+create index if not exists recargas_movimientos_operador_idx on public.recargas_movimientos (operador);
+create index if not exists recargas_movimientos_fecha_idx on public.recargas_movimientos (fecha desc);
+create index if not exists recargas_movimientos_venta_idx on public.recargas_movimientos (venta_id);
 
 -- -----------------------------------------------------------------------------
 -- 8. RLS (Row Level Security)
@@ -179,8 +229,15 @@ create policy "cierres_select" on public.cierres_caja for select to anon, authen
 create policy "cierres_insert" on public.cierres_caja for insert to anon, authenticated with check (true);
 create policy "cierres_delete" on public.cierres_caja for delete to anon, authenticated using (true);
 
+create policy "recargas_bolsas_select" on public.recargas_bolsas for select to anon, authenticated using (true);
+create policy "recargas_bolsas_insert" on public.recargas_bolsas for insert to anon, authenticated with check (true);
+create policy "recargas_bolsas_update" on public.recargas_bolsas for update to anon, authenticated using (true) with check (true);
+
+create policy "recargas_movimientos_select" on public.recargas_movimientos for select to anon, authenticated using (true);
+create policy "recargas_movimientos_insert" on public.recargas_movimientos for insert to anon, authenticated with check (true);
+
 -- -----------------------------------------------------------------------------
--- 8. Seed inicial de Servicios
+-- 9. Seed inicial de Servicios
 -- -----------------------------------------------------------------------------
 insert into public.servicios (codigo, categoria, nombre, descripcion, tipo_precio, precio_actual, version_precio, activo)
 values
@@ -202,62 +259,93 @@ where not exists (
 );
 
 -- -----------------------------------------------------------------------------
--- 9. Triggers y Funciones RPC
+-- 10. Funciones RPC
 -- -----------------------------------------------------------------------------
-create or replace function public.auditar_cambio_stock()
-returns trigger
+
+-- Gestión de saldo de bolsas
+create or replace function public.gestionar_saldo_bolsa(
+  p_operador text,
+  p_tipo text,
+  p_monto numeric(10, 2),
+  p_pago_con_efectivo_caja boolean default false,
+  p_notas text default null
+)
+returns public.recargas_bolsas
 language plpgsql
 security definer
 set search_path = public
 as $$
+declare
+  v_bolsa public.recargas_bolsas%rowtype;
+  v_saldo_anterior numeric(10, 2);
+  v_saldo_nuevo numeric(10, 2);
 begin
-  if TG_OP = 'INSERT' then
-    insert into public.movimientos_inventario (
-      producto_id,
-      nombre_producto,
-      tipo,
-      cantidad_cambio,
-      stock_anterior,
-      stock_nuevo,
-      motivo
-    ) values (
-      new.id,
-      new.nombre,
-      'creacion',
-      new.stock,
-      0,
-      new.stock,
-      'Producto creado en catálogo'
-    );
-  elsif TG_OP = 'UPDATE' and old.stock is distinct from new.stock then
-    insert into public.movimientos_inventario (
-      producto_id,
-      nombre_producto,
-      tipo,
-      cantidad_cambio,
-      stock_anterior,
-      stock_nuevo,
-      motivo
-    ) values (
-      new.id,
-      new.nombre,
-      case when new.stock < old.stock then 'venta' else 'recepcion_stock' end,
-      new.stock - old.stock,
-      old.stock,
-      new.stock,
-      case when new.stock < old.stock then 'Salida por venta / deducción' else 'Entrada de mercancía / ajuste' end
-    );
+  if p_operador not in ('tigo', 'claro') then
+    raise exception 'Operador inválido: %', p_operador;
   end if;
-  return new;
+
+  if p_monto < 0 then
+    raise exception 'El monto no puede ser negativo';
+  end if;
+
+  select * into v_bolsa
+  from public.recargas_bolsas
+  where operador = p_operador
+  for update;
+
+  if not found then
+    insert into public.recargas_bolsas (operador, nombre_display, saldo_actual)
+    values (p_operador, initcap(p_operador), 0)
+    returning * into v_bolsa;
+  end if;
+
+  v_saldo_anterior := v_bolsa.saldo_actual;
+
+  if p_tipo in ('compra_saldo', 'recarga_saldo') then
+    v_saldo_nuevo := v_saldo_anterior + p_monto;
+  elsif p_tipo in ('apertura_saldo', 'ajuste_manual') then
+    v_saldo_nuevo := p_monto;
+  else
+    raise exception 'Tipo de movimiento de saldo inválido: %', p_tipo;
+  end if;
+
+  update public.recargas_bolsas
+  set saldo_actual = v_saldo_nuevo,
+      updated_at = now()
+  where id = v_bolsa.id
+  returning * into v_bolsa;
+
+  insert into public.recargas_movimientos (
+    operador,
+    tipo,
+    monto_saldo,
+    comision,
+    total_cobrado_cliente,
+    pago_con_efectivo_caja,
+    saldo_anterior,
+    saldo_nuevo,
+    notas,
+    fecha
+  ) values (
+    p_operador,
+    case when p_tipo = 'recarga_saldo' then 'compra_saldo' else p_tipo end,
+    p_monto,
+    0,
+    0,
+    coalesce(p_pago_con_efectivo_caja, false),
+    v_saldo_anterior,
+    v_saldo_nuevo,
+    p_notas,
+    now()
+  );
+
+  return v_bolsa;
 end;
 $$;
 
-drop trigger if exists trigger_auditoria_stock on public.productos;
-create trigger trigger_auditoria_stock
-after insert or update on public.productos
-for each row execute function public.auditar_cambio_stock();
+grant execute on function public.gestionar_saldo_bolsa(text, text, numeric, boolean, text) to anon, authenticated;
 
--- Actualización de precio de servicio con versionado
+-- Actualización de precios de servicios
 create or replace function public.actualizar_precio_servicio(
   p_servicio_id uuid,
   p_nuevo_precio numeric(10, 2),
@@ -270,10 +358,11 @@ set search_path = public
 as $$
 declare
   v_servicio public.servicios%rowtype;
+  v_version_actual integer;
   v_nueva_version integer;
 begin
   if p_nuevo_precio < 0 then
-    raise exception 'El precio no puede ser negativo';
+    raise exception 'El precio del servicio no puede ser negativo';
   end if;
 
   select * into v_servicio
@@ -282,14 +371,17 @@ begin
   for update;
 
   if not found then
-    raise exception 'Servicio no encontrado: %', p_servicio_id;
+    raise exception 'Servicio con ID % no encontrado', p_servicio_id;
   end if;
 
-  v_nueva_version := v_servicio.version_precio + 1;
+  v_version_actual := v_servicio.version_precio;
+  v_nueva_version := v_version_actual + 1;
 
   update public.servicios_historial_precios
   set fecha_fin = now()
-  where servicio_id = p_servicio_id and fecha_fin is null;
+  where servicio_id = p_servicio_id
+    and version = v_version_actual
+    and fecha_fin is null;
 
   insert into public.servicios_historial_precios (
     servicio_id,
@@ -318,7 +410,7 @@ $$;
 
 grant execute on function public.actualizar_precio_servicio(uuid, numeric, text) to anon, authenticated;
 
--- Registrar venta para productos y servicios
+-- Registrar venta para productos, servicios y recargas telefónicas
 create or replace function public.registrar_venta(p_items jsonb)
 returns public.ventas
 language plpgsql
@@ -329,6 +421,7 @@ declare
   v_item jsonb;
   v_producto public.productos%rowtype;
   v_servicio public.servicios%rowtype;
+  v_bolsa public.recargas_bolsas%rowtype;
   v_cantidad integer;
   v_precio_unitario numeric(10, 2);
   v_subtotal numeric(10, 2);
@@ -338,9 +431,15 @@ declare
   v_tipo text;
   v_nombre text;
   v_desc_personalizada text;
+  v_operador text;
+  v_monto_recarga numeric(10, 2);
+  v_comision numeric(10, 2);
+  v_numero_telefono text;
+  v_saldo_anterior numeric(10, 2);
+  v_saldo_nuevo numeric(10, 2);
 begin
   if jsonb_typeof(p_items) is distinct from 'array' or jsonb_array_length(p_items) = 0 then
-    raise exception 'La venta debe incluir al menos un artículo o servicio';
+    raise exception 'La venta debe incluir al menos un artículo, servicio o recarga';
   end if;
 
   insert into public.ventas (total, items_vendidos)
@@ -356,7 +455,91 @@ begin
       raise exception 'Cantidad inválida';
     end if;
 
-    if v_tipo = 'servicio' then
+    if v_tipo = 'recarga' then
+      v_operador := lower(coalesce(v_item->>'operador', 'tigo'));
+      v_monto_recarga := (v_item->>'monto_recarga')::numeric(10, 2);
+      v_comision := coalesce((v_item->>'comision')::numeric(10, 2), 0);
+      v_precio_unitario := (v_item->>'precio_unitario')::numeric(10, 2);
+      v_numero_telefono := coalesce(v_item->>'numero_telefono', '');
+
+      if v_monto_recarga <= 0 then
+        raise exception 'El monto de recarga debe ser mayor a 0';
+      end if;
+
+      select * into v_bolsa
+      from public.recargas_bolsas
+      where operador = v_operador
+      for update;
+
+      if not found then
+        raise exception 'Bolsa de recarga no encontrada para operador %', v_operador;
+      end if;
+
+      if v_bolsa.saldo_actual < (v_monto_recarga * v_cantidad) then
+        raise exception 'Saldo insuficiente en bolsa % (Disponible: %, Requerido: %)',
+          upper(v_operador), v_bolsa.saldo_actual, (v_monto_recarga * v_cantidad);
+      end if;
+
+      v_saldo_anterior := v_bolsa.saldo_actual;
+      v_saldo_nuevo := v_saldo_anterior - (v_monto_recarga * v_cantidad);
+
+      update public.recargas_bolsas
+      set saldo_actual = v_saldo_nuevo,
+          updated_at = now()
+      where id = v_bolsa.id;
+
+      v_subtotal := v_precio_unitario * v_cantidad;
+      v_total := v_total + v_subtotal;
+
+      insert into public.recargas_movimientos (
+        operador,
+        tipo,
+        monto_saldo,
+        comision,
+        total_cobrado_cliente,
+        numero_telefono,
+        venta_id,
+        pago_con_efectivo_caja,
+        saldo_anterior,
+        saldo_nuevo,
+        notas,
+        fecha
+      ) values (
+        v_operador,
+        'venta_recarga',
+        v_monto_recarga * v_cantidad,
+        v_comision * v_cantidad,
+        v_subtotal,
+        v_numero_telefono,
+        v_venta.id,
+        false,
+        v_saldo_anterior,
+        v_saldo_nuevo,
+        'Venta de recarga POS' || case when v_numero_telefono <> '' then ' a ' || v_numero_telefono else '' end,
+        now()
+      );
+
+      v_nombre := 'Recarga ' || upper(v_operador);
+      v_desc_personalizada := case
+        when v_numero_telefono <> '' then 'Tel: ' || v_numero_telefono || ' ($' || v_monto_recarga || ' + $' || v_comision || ' com.)'
+        else '$' || v_monto_recarga || ' + $' || v_comision || ' com.'
+      end;
+
+      v_lineas := v_lineas || jsonb_build_array(
+        jsonb_build_object(
+          'tipo', 'recarga',
+          'operador', v_operador,
+          'nombre', v_nombre,
+          'numero_telefono', v_numero_telefono,
+          'monto_recarga', v_monto_recarga,
+          'comision', v_comision,
+          'descripcion_personalizada', v_desc_personalizada,
+          'cantidad', v_cantidad,
+          'precio_unitario', v_precio_unitario
+        )
+      );
+
+    elsif v_tipo = 'servicio' then
       if v_item->>'servicio_id' is not null then
         select * into v_servicio
         from public.servicios

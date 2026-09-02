@@ -1,7 +1,59 @@
--- Migración: Módulo de Recargas Telefónicas (Tigo y Claro)
--- Ejecutar en el SQL Editor de Supabase
+-- =============================================================================
+-- Migración Completa y Actualizada: Módulo de Recargas Telefónicas y Cierre de Caja
+-- Ejecutar en el SQL Editor de Supabase (Dashboard -> SQL Editor)
+-- =============================================================================
 
--- 1. Tabla de Bolsas / Saldos de Operadores
+-- 1. Tabla de Cierres de Caja (Cierre de Turno y Arqueo Diario)
+create table if not exists public.cierres_caja (
+  id uuid primary key default gen_random_uuid(),
+  fecha_cierre timestamptz not null default now(),
+  fecha_inicio_turno timestamptz not null default now() - interval '24 hours',
+  fecha_fin_turno timestamptz not null default now(),
+  total_ventas numeric(10, 2) not null default 0 check (total_ventas >= 0),
+  total_productos numeric(10, 2) not null default 0 check (total_productos >= 0),
+  total_servicios numeric(10, 2) not null default 0 check (total_servicios >= 0),
+  total_recargas numeric(10, 2) not null default 0 check (total_recargas >= 0),
+  total_comisiones_recargas numeric(10, 2) not null default 0 check (total_comisiones_recargas >= 0),
+  total_compras_saldo_efectivo numeric(10, 2) not null default 0 check (total_compras_saldo_efectivo >= 0),
+  desglose_servicios jsonb not null default '{}'::jsonb,
+  desglose_recargas jsonb not null default '{}'::jsonb,
+  total_efectivo_esperado numeric(10, 2) not null default 0 check (total_efectivo_esperado >= 0),
+  total_transferencia_esperado numeric(10, 2) not null default 0 check (total_transferencia_esperado >= 0),
+  total_tarjeta_esperado numeric(10, 2) not null default 0 check (total_tarjeta_esperado >= 0),
+  efectivo_contado numeric(10, 2) not null default 0 check (efectivo_contado >= 0),
+  desglose_efectivo jsonb default '{}'::jsonb,
+  diferencia numeric(10, 2) not null default 0,
+  estado_diferencia text not null default 'cuadrado' check (estado_diferencia in ('cuadrado', 'sobrante', 'faltante')),
+  total_transacciones integer not null default 0 check (total_transacciones >= 0),
+  cajero text not null default 'Cajero Principal',
+  notas text,
+  created_at timestamptz not null default now()
+);
+
+-- Asegurar columnas si la tabla ya existía previamente
+alter table public.cierres_caja add column if not exists total_recargas numeric(10, 2) not null default 0 check (total_recargas >= 0);
+alter table public.cierres_caja add column if not exists total_comisiones_recargas numeric(10, 2) not null default 0 check (total_comisiones_recargas >= 0);
+alter table public.cierres_caja add column if not exists total_compras_saldo_efectivo numeric(10, 2) not null default 0 check (total_compras_saldo_efectivo >= 0);
+alter table public.cierres_caja add column if not exists desglose_recargas jsonb not null default '{}'::jsonb;
+
+create index if not exists cierres_caja_fecha_idx on public.cierres_caja (fecha_cierre desc);
+
+-- RLS para cierres_caja
+alter table public.cierres_caja enable row level security;
+do $$
+begin
+  if not exists (select 1 from pg_policies where tablename = 'cierres_caja' and policyname = 'cierres_select') then
+    create policy "cierres_select" on public.cierres_caja for select to anon, authenticated using (true);
+  end if;
+  if not exists (select 1 from pg_policies where tablename = 'cierres_caja' and policyname = 'cierres_insert') then
+    create policy "cierres_insert" on public.cierres_caja for insert to anon, authenticated with check (true);
+  end if;
+  if not exists (select 1 from pg_policies where tablename = 'cierres_caja' and policyname = 'cierres_delete') then
+    create policy "cierres_delete" on public.cierres_caja for delete to anon, authenticated using (true);
+  end if;
+end $$;
+
+-- 2. Tabla de Bolsas / Saldos de Operadores (Tigo y Claro)
 create table if not exists public.recargas_bolsas (
   id uuid primary key default gen_random_uuid(),
   operador text unique not null check (operador in ('tigo', 'claro')),
@@ -20,7 +72,7 @@ on conflict (operador) do update set
   nombre_display = excluded.nombre_display,
   color_hex = excluded.color_hex;
 
--- 2. Tabla de Movimientos y Auditoría de Recargas
+-- 3. Tabla de Movimientos y Auditoría de Recargas
 create table if not exists public.recargas_movimientos (
   id uuid primary key default gen_random_uuid(),
   operador text not null check (operador in ('tigo', 'claro')),
@@ -41,16 +93,28 @@ create index if not exists recargas_movimientos_operador_idx on public.recargas_
 create index if not exists recargas_movimientos_fecha_idx on public.recargas_movimientos (fecha desc);
 create index if not exists recargas_movimientos_venta_idx on public.recargas_movimientos (venta_id);
 
--- RLS
+-- RLS para recargas_bolsas y recargas_movimientos
 alter table public.recargas_bolsas enable row level security;
 alter table public.recargas_movimientos enable row level security;
 
-create policy "recargas_bolsas_select" on public.recargas_bolsas for select to anon, authenticated using (true);
-create policy "recargas_bolsas_insert" on public.recargas_bolsas for insert to anon, authenticated with check (true);
-create policy "recargas_bolsas_update" on public.recargas_bolsas for update to anon, authenticated using (true) with check (true);
-
-create policy "recargas_movimientos_select" on public.recargas_movimientos for select to anon, authenticated using (true);
-create policy "recargas_movimientos_insert" on public.recargas_movimientos for insert to anon, authenticated with check (true);
+do $$
+begin
+  if not exists (select 1 from pg_policies where tablename = 'recargas_bolsas' and policyname = 'recargas_bolsas_select') then
+    create policy "recargas_bolsas_select" on public.recargas_bolsas for select to anon, authenticated using (true);
+  end if;
+  if not exists (select 1 from pg_policies where tablename = 'recargas_bolsas' and policyname = 'recargas_bolsas_insert') then
+    create policy "recargas_bolsas_insert" on public.recargas_bolsas for insert to anon, authenticated with check (true);
+  end if;
+  if not exists (select 1 from pg_policies where tablename = 'recargas_bolsas' and policyname = 'recargas_bolsas_update') then
+    create policy "recargas_bolsas_update" on public.recargas_bolsas for update to anon, authenticated using (true) with check (true);
+  end if;
+  if not exists (select 1 from pg_policies where tablename = 'recargas_movimientos' and policyname = 'recargas_movimientos_select') then
+    create policy "recargas_movimientos_select" on public.recargas_movimientos for select to anon, authenticated using (true);
+  end if;
+  if not exists (select 1 from pg_policies where tablename = 'recargas_movimientos' and policyname = 'recargas_movimientos_insert') then
+    create policy "recargas_movimientos_insert" on public.recargas_movimientos for insert to anon, authenticated with check (true);
+  end if;
+end $$;
 
 -- 3. Función para Reponer / Ajustar Saldo de Bolsa
 create or replace function public.gestionar_saldo_bolsa(
